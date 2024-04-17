@@ -127,12 +127,12 @@ function initialize()
 	
 	new THREE.MTLLoader()
 		.setPath( 'models/' )
-		.load( 'ETERRY2.mtl', function ( materials ) {
+		.load( 'eterry_tool.mtl', function ( materials ) {
 			materials.preload();
 			new THREE.OBJLoader()
 				.setMaterials( materials )
 				.setPath( 'models/' )
-				.load( 'ETERRY2.obj', function ( group ) {
+				.load( 'eterry_tool.obj', function ( group ) {
 					mesh0 = group.children[0];
 					mesh0.material.side = THREE.DoubleSide;
 					// mesh0.position.y = 0.25;

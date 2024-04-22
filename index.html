@@ -131,7 +131,7 @@ function initialize()
 			materials.preload();
 			new THREE.OBJLoader()
 				.setMaterials( materials )
-				.setPath( 'models/' )
+				.setPath( '' )
 				.load( 'https://eterry-my.sharepoint.com/:u:/g/personal/vijay_samula_e-terry_de/EZT2NahnuE1Oik9nNWfZUFsB5xVTvJX7tKe550ANmzoVig?e=U4GOb2', function ( group ) {
 					mesh0 = group.children[0];
 					mesh0.material.side = THREE.DoubleSide;

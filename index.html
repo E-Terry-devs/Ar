@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <head>
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	<title>Hello, world!</title>
+	<title>Augmented Reality version of E-TERRY</title>
 	<!-- include three.js library -->
 	<script src='js/three.js'></script>
 	<script src='js/OBJLoader.js'></script>
@@ -127,12 +127,12 @@ function initialize()
 	
 	new THREE.MTLLoader()
 		.setPath( 'models/' )
-		.load( 'eterry_tool.mtl', function ( materials ) {
+		.load( 'eterry_tool2.mtl', function ( materials ) {
 			materials.preload();
 			new THREE.OBJLoader()
 				.setMaterials( materials )
 				.setPath( 'models/' )
-				.load( 'eterry_tool.obj', function ( group ) {
+				.load( 'https://eterry-my.sharepoint.com/:u:/g/personal/vijay_samula_e-terry_de/EZT2NahnuE1Oik9nNWfZUFsB5xVTvJX7tKe550ANmzoVig?e=U4GOb2', function ( group ) {
 					mesh0 = group.children[0];
 					mesh0.material.side = THREE.DoubleSide;
 					// mesh0.position.y = 0.25;

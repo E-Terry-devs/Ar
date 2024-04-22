@@ -124,15 +124,15 @@ function initialize()
 	
 	function onProgress(xhr) { console.log( (xhr.loaded / xhr.total * 100) + '% loaded' ); }
 	function onError(xhr) { console.log( 'An error happened' ); }
-	const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+	// const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
 	new THREE.MTLLoader()
 		.setPath( 'models/' )
-		.load( 'eterry_tool2.mtl', function ( materials ) {
+		.load( 'ETERRY2.mtl', function ( materials ) {
 			materials.preload();
 			new THREE.OBJLoader()
 				.setMaterials( materials )
-				.setPath( '' )
-				.load( proxyUrl + 'https://eterry-my.sharepoint.com/:u:/g/personal/vijay_samula_e-terry_de/EZT2NahnuE1Oik9nNWfZUFsB5xVTvJX7tKe550ANmzoVig?e=Tz0YmY', function ( group ) {
+				.setPath( 'models/' )
+				.load( 'ETERRY2.obj', function ( group ) {
 					mesh0 = group.children[0];
 					mesh0.material.side = THREE.DoubleSide;
 					// mesh0.position.y = 0.25;

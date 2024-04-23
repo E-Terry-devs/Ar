@@ -127,12 +127,12 @@ function initialize()
 	// const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
 	new THREE.MTLLoader()
 		.setPath( 'models/' )
-		.load( 'ETERRY2.mtl', function ( materials ) {
+		.load( 'ETERRY.mtl', function ( materials ) {
 			materials.preload();
 			new THREE.OBJLoader()
 				.setMaterials( materials )
 				.setPath( '' )
-				.load( 'ETERRY2.obj', function ( group ) {
+				.load( 'ETERRY.obj', function ( group ) {
 					mesh0 = group.children[0];
 					mesh0.material.side = THREE.DoubleSide;
 					// mesh0.position.y = 0.25;

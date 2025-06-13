@@ -17,6 +17,23 @@
 </head>
 
 <body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<script>
+// Polyfill for navigator.mediaDevices.getUserMedia for older browsers
+if (navigator.mediaDevices === undefined) {
+  navigator.mediaDevices = {};
+}
+if (navigator.mediaDevices.getUserMedia === undefined) {
+  navigator.mediaDevices.getUserMedia = function(constraints) {
+    var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.getUserMedia;
+    if (!getUserMedia) {
+      return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+    }
+    return new Promise(function(resolve, reject) {
+      getUserMedia.call(navigator, constraints, resolve, reject);
+    });
+  }
+}
+</script>
 
 <!-- 
   Example created by Lee Stemkoski: https://github.com/stemkoski

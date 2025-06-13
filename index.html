@@ -1,279 +1,189 @@
 <!DOCTYPE html>
 <head>
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	<title>Optimized AR E-TERRY</title>
+	<title>Augmented Reality version of E-TERRY</title>
 	<!-- include three.js library -->
-	<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'></script>
-	<!-- GLTF Loader for better performance -->
-	<script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js'></script>
-	<script src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js'></script>
+	<script src='js/three.js'></script>
+	<script src='js/OBJLoader.js'></script>
+	<script src='js/MTLLoader.js'></script>
 	<!-- include jsartookit -->
-	<script src="https://cdn.jsdelivr.net/gh/artoolkitx/jsartoolkit5@master/build/artoolkit.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/gh/artoolkitx/jsartoolkit5@master/build/artoolkit.api.js"></script>
+	<script src="jsartoolkit5/artoolkit.min.js"></script>
+	<script src="jsartoolkit5/artoolkit.api.js"></script>
 	<!-- include threex.artoolkit -->
-	<script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js@master/three.js/build/ar-threex.js"></script>
+	<script src="threex/threex-artoolkitsource.js"></script>
+	<script src="threex/threex-artoolkitcontext.js"></script>
+	<script src="threex/threex-arbasecontrols.js"></script>
+	<script src="threex/threex-armarkercontrols.js"></script>
 </head>
 
-<body style='margin: 0px; overflow: hidden; font-family: Monospace; background: #000;'>
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+<script>
+// Polyfill for navigator.mediaDevices.getUserMedia for older browsers
+if (navigator.mediaDevices === undefined) {
+  navigator.mediaDevices = {};
+}
+if (navigator.mediaDevices.getUserMedia === undefined) {
+  navigator.mediaDevices.getUserMedia = function(constraints) {
+    var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.getUserMedia;
+    if (!getUserMedia) {
+      return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+    }
+    return new Promise(function(resolve, reject) {
+      getUserMedia.call(navigator, constraints, resolve, reject);
+    });
+  }
+}
+</script>
 
-<!-- Loading indicator -->
-<div id="loadingScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; display: flex; justify-content: center; align-items: center; z-index: 1000;">
-	<div style="text-align: center;">
-		<div style="font-size: 24px; margin-bottom: 20px;">Loading AR Experience...</div>
-		<div id="loadingProgress" style="width: 200px; height: 20px; border: 2px solid white; border-radius: 10px; overflow: hidden;">
-			<div id="progressBar" style="width: 0%; height: 100%; background: #4CAF50; transition: width 0.3s;"></div>
-		</div>
-		<div id="loadingText" style="margin-top: 10px;">Initializing...</div>
-	</div>
-</div>
+<!-- 
+  Example created by Lee Stemkoski: https://github.com/stemkoski
+  Based on the AR.js library and examples created by Jerome Etienne: https://github.com/jeromeetienne/AR.js/
+-->
 
 <script>
 
 var scene, camera, renderer, clock, deltaTime, totalTime;
-var arToolkitSource, arToolkitContext;
-var markerRoot1;
-var mesh1, loadedModel;
-var isModelLoaded = false;
 
-// Performance monitoring
-var lastTime = 0;
-var frameCount = 0;
+var arToolkitSource, arToolkitContext;
+
+var markerRoot1;
+
+var mesh1;
 
 initialize();
 animate();
 
-function updateLoadingProgress(progress, text) {
-	document.getElementById('progressBar').style.width = (progress * 100) + '%';
-	document.getElementById('loadingText').textContent = text;
-}
-
-function hideLoadingScreen() {
-	document.getElementById('loadingScreen').style.display = 'none';
-}
-
-function initialize() {
+function initialize()
+{
 	scene = new THREE.Scene();
 
-	// Improved lighting for better model visibility
-	let ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-	scene.add(ambientLight);
-	
-	let directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-	directionalLight.position.set(1, 1, 1);
-	scene.add(directionalLight);
-
+	let ambientLight = new THREE.AmbientLight( 0xcccccc, 1.0 );
+	scene.add( ambientLight );
+				
 	camera = new THREE.Camera();
 	scene.add(camera);
 
 	renderer = new THREE.WebGLRenderer({
-		antialias: true,
-		alpha: true,
-		powerPreference: "high-performance"
+		antialias : true,
+		alpha: true
 	});
-	renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-	renderer.setSize(640, 480);
-	renderer.domElement.style.position = 'absolute';
-	renderer.domElement.style.top = '0px';
-	renderer.domElement.style.left = '0px';
-	document.body.appendChild(renderer.domElement);
-
-	// Enable shadows for better visual quality
-	renderer.shadowMap.enabled = true;
-	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( 640, 480 );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
 
 	clock = new THREE.Clock();
 	deltaTime = 0;
 	totalTime = 0;
-
-	updateLoadingProgress(0.1, "Setting up camera...");
-
+	
 	////////////////////////////////////////////////////////////
 	// setup arToolkitSource
 	////////////////////////////////////////////////////////////
+
 	arToolkitSource = new THREEx.ArToolkitSource({
-		sourceType: 'webcam',
+		sourceType : 'webcam',
 	});
 
-	function onResize() {
-		arToolkitSource.onResize();
-		arToolkitSource.copySizeTo(renderer.domElement);
-		if (arToolkitContext.arController !== null) {
-			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
-		}
+	function onResize()
+	{
+		arToolkitSource.onResize()	
+		arToolkitSource.copySizeTo(renderer.domElement)	
+		if ( arToolkitContext.arController !== null )
+		{
+			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+		}	
 	}
 
-	arToolkitSource.init(function onReady() {
-		updateLoadingProgress(0.3, "Camera initialized...");
-		onResize();
+	arToolkitSource.init(function onReady(){
+		onResize()
 	});
-
-	window.addEventListener('resize', function() {
-		onResize();
+	
+	// handle resize event
+	window.addEventListener('resize', function(){
+		onResize()
 	});
-
+	
 	////////////////////////////////////////////////////////////
 	// setup arToolkitContext
-	////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////	
+
+	// create atToolkitContext
 	arToolkitContext = new THREEx.ArToolkitContext({
 		cameraParametersUrl: 'data/camera_para.dat',
 		detectionMode: 'mono'
 	});
-
-	arToolkitContext.init(function onCompleted() {
-		updateLoadingProgress(0.5, "AR tracking initialized...");
-		camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+	
+	// copy projection matrix to camera when initialization complete
+	arToolkitContext.init( function onCompleted(){
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
 	});
 
 	////////////////////////////////////////////////////////////
 	// setup markerRoots
 	////////////////////////////////////////////////////////////
+
+	// build markerControls
 	markerRoot1 = new THREE.Group();
 	scene.add(markerRoot1);
-	
 	let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
-		type: 'pattern', 
-		patternUrl: "data/eterry-logo.patt",
-	});
+		type: 'pattern', patternUrl: "data/eterry-logo.patt",
+	})
 
-	updateLoadingProgress(0.6, "Loading 3D model...");
-
-	// Load optimized model with progress tracking
-	loadOptimizedModel();
-}
-
-function loadOptimizedModel() {
-	// Setup DRACO loader for compression
-	const dracoLoader = new THREE.DRACOLoader();
-	dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+	let geometry1 = new THREE.PlaneBufferGeometry(1,1, 4,4);
+	let loader = new THREE.TextureLoader();
+	// let texture = loader.load( 'images/earth.jpg', render );
+	let material1 = new THREE.MeshBasicMaterial( { color: 0x0000ff, opacity: 0.5 } );
+	mesh1 = new THREE.Mesh( geometry1, material1 );
+	mesh1.rotation.x = -Math.PI/2;
+	markerRoot1.add( mesh1 );
 	
-	const loader = new THREE.GLTFLoader();
-	loader.setDRACOLoader(dracoLoader);
-
-	// Fallback to OBJ if GLTF not available
-	const modelPath = 'models/ETERRY.glb'; // Use .glb for better compression
-	
-	loader.load(
-		modelPath,
-		function (gltf) {
-			loadedModel = gltf.scene;
-			
-			// Optimize the loaded model
-			loadedModel.traverse(function (child) {
-				if (child.isMesh) {
-					// Enable frustum culling
-					child.frustumCulled = true;
-					
-					// Optimize materials
-					if (child.material) {
-						child.material.needsUpdate = true;
-						// Use fewer texture samples for better performance
-						if (child.material.map) {
-							child.material.map.generateMipmaps = false;
-							child.material.map.minFilter = THREE.LinearFilter;
-						}
-					}
-					
-					// Enable shadows
-					child.castShadow = true;
-					child.receiveShadow = true;
-				}
-			});
-
-			// Scale and position the model
-			loadedModel.position.set(0, 0, 0);
-			loadedModel.rotation.set(0, 0, 0);
-			loadedModel.scale.set(1, 1, 1);
-			
-			markerRoot1.add(loadedModel);
-			isModelLoaded = true;
-			
-			updateLoadingProgress(1.0, "Ready!");
-			setTimeout(hideLoadingScreen, 500);
-		},
-		function (progress) {
-			const percent = (progress.loaded / progress.total) * 0.4 + 0.6;
-			updateLoadingProgress(percent, `Loading model: ${Math.round(percent * 100)}%`);
-		},
-		function (error) {
-			console.error('Error loading GLTF model:', error);
-			// Fallback to original OBJ loading
-			loadOBJModel();
-		}
-	);
-}
-
-function loadOBJModel() {
-	updateLoadingProgress(0.7, "Loading OBJ model (fallback)...");
-	
-	const mtlLoader = new THREE.MTLLoader();
-	mtlLoader.setPath('models/');
-	mtlLoader.load('ETERRY.mtl', function (materials) {
-		materials.preload();
-		
-		const objLoader = new THREE.OBJLoader();
-		objLoader.setMaterials(materials);
-		objLoader.setPath('models/');
-		objLoader.load('ETERRY.obj', function (group) {
-			loadedModel = group.children[0];
-			loadedModel.material.side = THREE.DoubleSide;
-			loadedModel.position.set(0, 0, 0);
-			loadedModel.rotation.set(0, 0, 0);
-			loadedModel.scale.set(1, 1, 1);
-			
-			markerRoot1.add(loadedModel);
-			isModelLoaded = true;
-			
-			updateLoadingProgress(1.0, "Ready!");
-			setTimeout(hideLoadingScreen, 500);
-		}, 
-		function (progress) {
-			const percent = (progress.loaded / progress.total) * 0.3 + 0.7;
-			updateLoadingProgress(percent, `Loading: ${Math.round(percent * 100)}%`);
-		},
-		function (error) {
-			console.error('Error loading model:', error);
-			updateLoadingProgress(1.0, "Error loading model");
+	function onProgress(xhr) { console.log( (xhr.loaded / xhr.total * 100) + '% loaded' ); }
+	function onError(xhr) { console.log( 'An error happened' ); }
+	// const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+	new THREE.MTLLoader()
+		.setPath( 'models/' )
+		.load( 'ETERRY.mtl', function ( materials ) {
+			materials.preload();
+			new THREE.OBJLoader()
+				.setMaterials( materials )
+				.setPath( 'models/' )
+				.load( 'ETERRY.obj', function ( group ) {
+					mesh0 = group.children[0];
+					mesh0.material.side = THREE.DoubleSide;
+					// mesh0.position.y = 0.25;
+					mesh0.position.set(0,0,0);
+					mesh0.rotation.set(0,0,0);
+					mesh0.scale.set(1,1,1);
+					markerRoot1.add(mesh0);
+				}, onProgress, onError );
 		});
-	});
 }
 
-function update() {
-	if (arToolkitSource.ready !== false) {
-		arToolkitContext.update(arToolkitSource.domElement);
-	}
-	
-	// Add simple animation to loaded model
-	if (isModelLoaded && loadedModel) {
-		loadedModel.rotation.y += 0.01;
-	}
+
+function update()
+{
+	// update artoolkit on every frame
+	if ( arToolkitSource.ready !== false )
+		arToolkitContext.update( arToolkitSource.domElement );
 }
 
-function render() {
-	renderer.render(scene, camera);
-	
-	// Performance monitoring
-	frameCount++;
-	const now = performance.now();
-	if (now >= lastTime + 1000) {
-		console.log(`FPS: ${frameCount}`);
-		frameCount = 0;
-		lastTime = now;
-	}
+
+function render()
+{
+	renderer.render( scene, camera );
 }
 
-function animate() {
+
+function animate()
+{
 	requestAnimationFrame(animate);
 	deltaTime = clock.getDelta();
 	totalTime += deltaTime;
 	update();
 	render();
 }
-
-// Handle errors gracefully
-window.addEventListener('error', function(e) {
-	console.error('Application error:', e.error);
-	document.getElementById('loadingText').textContent = 'Error loading AR experience';
-});
 
 </script>
 

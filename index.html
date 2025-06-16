@@ -376,6 +376,20 @@
                 <span class="debug-label">Tracking:</span>
                 <span class="debug-value" id="trackingStatus">Inactive</span>
             </div>
+            <div class="debug-row">
+                <span class="debug-label">Model Y:</span>
+                <span class="debug-value" id="modelPosition">N/A</span>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-header">👁️ What to Look For</div>
+            <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
+                • Green plane = marker detected<br>
+                • Blue corners = marker boundaries<br>
+                • Red cube = marker center<br>
+                • Your model should appear above
+            </div>
         </div>
     </div>
 
@@ -458,12 +472,12 @@
 
                 // Mobile-optimized model options
                 this.modelOptions = [
-                    // {
-                    //     name: 'E-TERRY Compressed GLTF (Mobile)',
-                    //     path: 'models/ETERRY_compressed.gltf',
-                    //     type: 'gltf',
-                    //     compressed: true
-                    // },
+                    {
+                        name: 'E-TERRY Compressed GLTF (Mobile)',
+                        path: 'models/ETERRY_compressed.gltf',
+                        type: 'gltf',
+                        compressed: true
+                    },
                     {
                         name: 'E-TERRY Compressed GLB (Mobile)',
                         path: 'models/ETERRY_compressed.glb',
@@ -674,14 +688,14 @@
 
             addMarkerVisuals() {
                 // Create a coordinate system helper to visualize marker position
-                const axesHelper = new THREE.AxesHelper(0.5);
+                const axesHelper = new THREE.AxesHelper(0.3); // Smaller axes
                 this.markerRoot.add(axesHelper);
 
-                // Add a semi-transparent plane to show marker bounds
+                // Add a semi-transparent plane to show marker bounds (make it more visible)
                 const markerGeometry = new THREE.PlaneGeometry(1, 1);
                 const markerMaterial = new THREE.MeshBasicMaterial({
                     color: 0x00ff00,
-                    opacity: 0.3,
+                    opacity: 0.5, // More visible
                     transparent: true,
                     side: THREE.DoubleSide
                 });
@@ -690,13 +704,28 @@
                 this.markerRoot.add(markerPlane);
 
                 // Add a small cube at center for reference
-                const cubeGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+                const cubeGeometry = new THREE.BoxGeometry(0.05, 0.05, 0.05); // Smaller cube
                 const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                 const centerCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-                centerCube.position.set(0, 0.05, 0); // Slightly above marker
+                centerCube.position.set(0, 0.025, 0); // Just above marker
                 this.markerRoot.add(centerCube);
 
-                console.log('✅ Marker visuals added for debugging');
+                // Add corner markers to see marker boundaries
+                const cornerGeometry = new THREE.SphereGeometry(0.02);
+                const cornerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+                
+                const corners = [
+                    [-0.5, 0.01, -0.5], [0.5, 0.01, -0.5],
+                    [-0.5, 0.01, 0.5], [0.5, 0.01, 0.5]
+                ];
+                
+                corners.forEach((pos, i) => {
+                    const corner = new THREE.Mesh(cornerGeometry, cornerMaterial);
+                    corner.position.set(pos[0], pos[1], pos[2]);
+                    this.markerRoot.add(corner);
+                });
+
+                console.log('✅ Enhanced marker visuals added - look for green plane with blue corners');
             }
 
             async loadModel() {
@@ -856,6 +885,8 @@
             }
 
             positionModelOnMarker(model) {
+                console.log('🔧 Positioning model on marker...');
+                
                 // Reset any existing transforms
                 model.position.set(0, 0, 0);
                 model.rotation.set(0, 0, 0);
@@ -866,32 +897,49 @@
                 const size = box.getSize(new THREE.Vector3());
                 const center = box.getCenter(new THREE.Vector3());
 
-                console.log('📦 Model bounds:', {
+                console.log('📦 Original model bounds:', {
                     size: { x: size.x.toFixed(3), y: size.y.toFixed(3), z: size.z.toFixed(3) },
-                    center: { x: center.x.toFixed(3), y: center.y.toFixed(3), z: center.z.toFixed(3) }
+                    center: { x: center.x.toFixed(3), y: center.y.toFixed(3), z: center.z.toFixed(3) },
+                    min: { x: box.min.x.toFixed(3), y: box.min.y.toFixed(3), z: box.min.z.toFixed(3) },
+                    max: { x: box.max.x.toFixed(3), y: box.max.y.toFixed(3), z: box.max.z.toFixed(3) }
                 });
 
-                // Center the model
-                model.position.x = -center.x;
-                model.position.y = -center.y;
-                model.position.z = -center.z;
-
-                // Position above the marker (so it doesn't clip through)
-                model.position.y = Math.max(0, size.y / 2);
-
-                // Scale to fit marker (optional - adjust as needed)
-                const maxDimension = Math.max(size.x, size.z);
+                // Scale first to fit marker area
+                const maxDimension = Math.max(size.x, size.y, size.z);
+                let targetScale = 1;
+                
                 if (maxDimension > 0.8) { // If larger than 80% of marker
-                    const scale = 0.8 / maxDimension;
-                    model.scale.setScalar(scale);
-                    console.log(`📏 Model scaled by ${scale.toFixed(3)} to fit marker`);
+                    targetScale = 0.8 / maxDimension;
+                    model.scale.setScalar(targetScale);
+                    console.log(`📏 Model scaled by ${targetScale.toFixed(3)} to fit marker`);
+                    
+                    // Recalculate bounds after scaling
+                    box.setFromObject(model);
+                    size.copy(box.getSize(new THREE.Vector3()));
+                    center.copy(box.getCenter(new THREE.Vector3()));
                 }
 
-                // Make sure model faces the right direction (optional)
-                // model.rotation.y = Math.PI; // Uncomment if model is backwards
+                // Center the model horizontally (X and Z)
+                model.position.x = -center.x;
+                model.position.z = -center.z;
 
-                console.log(`📍 Final model position: (${model.position.x.toFixed(3)}, ${model.position.y.toFixed(3)}, ${model.position.z.toFixed(3)})`);
-                console.log(`📏 Final model scale: (${model.scale.x.toFixed(3)}, ${model.scale.y.toFixed(3)}, ${model.scale.z.toFixed(3)})`);
+                // Position model so its bottom sits on the marker (Y = 0)
+                // Instead of centering vertically, place bottom of model at marker level
+                model.position.y = -box.min.y; // This moves the model up so its bottom is at y=0
+
+                console.log('🔧 Model positioning applied:');
+                console.log(`   Center offset: (${-center.x.toFixed(3)}, ${(-box.min.y).toFixed(3)}, ${-center.z.toFixed(3)})`);
+                console.log(`   Final position: (${model.position.x.toFixed(3)}, ${model.position.y.toFixed(3)}, ${model.position.z.toFixed(3)})`);
+                console.log(`   Final scale: ${model.scale.x.toFixed(3)}`);
+                
+                // Verify final bounds
+                const finalBox = new THREE.Box3().setFromObject(model);
+                console.log(`   Final Y range: ${finalBox.min.y.toFixed(3)} to ${finalBox.max.y.toFixed(3)}`);
+                
+                // Optional: Add a small offset to lift model slightly above marker
+                model.position.y += 0.01; // 1cm above marker surface
+                
+                console.log(`✅ Model positioned: bottom at marker level, centered horizontally`);
             }
 
             optimizeForMobile(model) {
@@ -977,18 +1025,27 @@
                         if (this.markerRoot.visible) {
                             document.getElementById('trackingStatus').textContent = 'Active ✓';
                             
-                            // Log marker position for debugging
+                            // Update model position in debug
                             if (this.currentModel) {
+                                const modelY = this.currentModel.position.y.toFixed(2);
+                                document.getElementById('modelPosition').textContent = `${modelY}`;
+                            }
+                            
+                            // Log marker position for debugging (less frequently)
+                            if (Math.random() < 0.005) { // 0.5% chance per frame
                                 const worldPos = new THREE.Vector3();
                                 this.markerRoot.getWorldPosition(worldPos);
+                                console.log(`🎯 Marker at: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`);
                                 
-                                // Only log occasionally to avoid spam
-                                if (Math.random() < 0.01) { // 1% chance per frame
-                                    console.log(`🎯 Marker world position: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`);
+                                if (this.currentModel) {
+                                    const modelWorld = new THREE.Vector3();
+                                    this.currentModel.getWorldPosition(modelWorld);
+                                    console.log(`📦 Model at: (${modelWorld.x.toFixed(2)}, ${modelWorld.y.toFixed(2)}, ${modelWorld.z.toFixed(2)})`);
                                 }
                             }
                         } else {
                             document.getElementById('trackingStatus').textContent = 'Searching...';
+                            document.getElementById('modelPosition').textContent = 'N/A';
                         }
                     }
                     

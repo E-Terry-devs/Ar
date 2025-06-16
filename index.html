@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Modern E-TERRY AR - Draco Compressed Models</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>Mobile E-TERRY AR - Draco Compressed Models</title>
+    
+    <!-- HTTPS required for mobile camera access -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     
     <!-- Modern Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
-    <!-- AR.js - Modern version -->
+    <!-- AR.js - Mobile optimized version -->
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
     
@@ -21,15 +24,21 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #000;
             overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
-        /* Modern loading screen with glassmorphism */
+        /* Mobile-first loading screen */
         #loadingScreen {
             position: fixed;
             top: 0;
@@ -44,21 +53,25 @@
             z-index: 1000;
             color: white;
             text-align: center;
+            padding: 20px;
         }
 
         .loading-card {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             border-radius: 20px;
-            padding: 40px;
+            padding: 30px 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            max-width: 90vw;
+            width: 100%;
+            max-width: 400px;
         }
 
         .loading-title {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: linear-gradient(45deg, #fff, #f0f0f0);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -66,13 +79,13 @@
         }
 
         .spinner {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border: 3px solid rgba(255, 255, 255, 0.2);
             border-top: 3px solid #fff;
             border-radius: 50%;
             animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-            margin: 20px auto;
+            margin: 15px auto;
         }
 
         @keyframes spin {
@@ -82,23 +95,46 @@
         }
 
         .loading-text {
-            font-size: 1.1rem;
+            font-size: 1rem;
             opacity: 0.9;
-            margin-top: 15px;
+            margin: 10px 0;
+            line-height: 1.4;
         }
 
-        /* Modern status bar */
+        /* Camera permission prompt */
+        .camera-prompt {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .camera-prompt button {
+            background: white;
+            color: #4CAF50;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* Mobile status bar */
         #statusBar {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            right: 20px;
+            top: 10px;
+            left: 10px;
+            right: 10px;
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(10px);
             color: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            font-size: 14px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 13px;
             z-index: 100;
             display: none;
             border-left: 4px solid #4CAF50;
@@ -109,50 +145,55 @@
         .status-warning { border-left-color: #FF9800; }
         .status-error { border-left-color: #f44336; }
 
-        /* Modern debug panel */
+        /* Mobile-optimized debug panel */
         #debugInfo {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
             background: rgba(0, 0, 0, 0.9);
             backdrop-filter: blur(20px);
             color: white;
-            padding: 20px;
-            border-radius: 12px;
-            font-size: 12px;
-            max-width: 380px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 11px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-height: 30vh;
+            overflow-y: auto;
         }
 
         .debug-section {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
 
         .debug-header {
             font-weight: bold;
             color: #4CAF50;
-            font-size: 13px;
-            margin-bottom: 8px;
+            font-size: 12px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .debug-row {
             display: flex;
             justify-content: space-between;
-            margin: 4px 0;
-            padding: 2px 0;
+            margin: 3px 0;
+            padding: 1px 0;
         }
 
         .debug-label {
             color: #ccc;
+            flex: 1;
         }
 
         .debug-value {
             color: #fff;
             font-weight: 500;
+            text-align: right;
+            flex: 1;
         }
 
         /* Progress bar */
@@ -176,41 +217,72 @@
         /* Camera error overlay */
         .camera-error {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(244, 67, 54, 0.9);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(244, 67, 54, 0.95);
             color: white;
-            padding: 20px;
-            border-radius: 12px;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             text-align: center;
             z-index: 1001;
-            display: none;
+            padding: 20px;
         }
 
-        /* Responsive design */
-        @media (max-width: 768px) {
-            #debugInfo {
-                max-width: calc(100vw - 40px);
-                bottom: 10px;
-                left: 10px;
-                font-size: 11px;
-            }
+        .camera-error h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
 
-            #statusBar {
-                top: 10px;
-                left: 10px;
-                right: 10px;
-            }
+        .camera-error p {
+            margin-bottom: 20px;
+            line-height: 1.5;
+            max-width: 300px;
+        }
 
-            .loading-title {
-                font-size: 2rem;
-            }
+        .camera-error button {
+            background: white;
+            color: #f44336;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 5px;
+        }
 
-            .loading-card {
-                padding: 30px 20px;
-                margin: 0 20px;
-            }
+        /* Hide debug panel toggle for mobile */
+        .debug-toggle {
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 99;
+        }
+
+        /* Prevent zoom on iOS */
+        input, button, select, textarea {
+            font-size: 16px;
+        }
+
+        /* Camera video styling */
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
         }
     </style>
 </head>
@@ -220,7 +292,13 @@
         <div class="loading-card">
             <h1 class="loading-title">E-TERRY AR</h1>
             <div class="spinner"></div>
-            <p class="loading-text" id="loadingText">Initializing modern AR experience...</p>
+            <p class="loading-text" id="loadingText">Requesting camera access...</p>
+            
+            <div class="camera-prompt" id="cameraPrompt">
+                <p>📷 Camera access is required for AR</p>
+                <button onclick="requestCameraPermission()">Allow Camera</button>
+            </div>
+            
             <div class="progress-container">
                 <div class="progress-bar" id="progressBar"></div>
             </div>
@@ -231,15 +309,37 @@
         <span id="statusText">Ready</span>
     </div>
 
+    <button class="debug-toggle" onclick="toggleDebug()">🔧</button>
+
     <div class="camera-error" id="cameraError">
-        <h3>Camera Access Required</h3>
-        <p>Please allow camera access to use AR features</p>
-        <button onclick="location.reload()">Retry</button>
+        <h3>📷 Camera Access Required</h3>
+        <p>This AR experience needs camera access to work. Please:</p>
+        <p>1. Make sure you're using HTTPS<br>
+           2. Allow camera permissions<br>
+           3. Use the back camera if available</p>
+        <button onclick="requestCameraPermission()">Try Again</button>
+        <button onclick="showCameraTroubleshooting()">Troubleshoot</button>
     </div>
     
     <div id="debugInfo">
         <div class="debug-section">
-            <div class="debug-header">🗜️ Draco Compressed Models</div>
+            <div class="debug-header">📱 Mobile Camera</div>
+            <div class="debug-row">
+                <span class="debug-label">Status:</span>
+                <span class="debug-value" id="cameraStatus">Starting...</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Resolution:</span>
+                <span class="debug-value" id="cameraInfo">Detecting...</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Permissions:</span>
+                <span class="debug-value" id="permissionStatus">Checking...</span>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-header">🗜️ Model Loading</div>
             <div class="debug-row">
                 <span class="debug-label">Format:</span>
                 <span class="debug-value" id="formatInfo">Checking...</span>
@@ -264,22 +364,6 @@
                 <span class="debug-label">Textures:</span>
                 <span class="debug-value" id="textureCount">0</span>
             </div>
-            <div class="debug-row">
-                <span class="debug-label">Vertices:</span>
-                <span class="debug-value" id="vertexCount">0</span>
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">📷 Camera</div>
-            <div class="debug-row">
-                <span class="debug-label">Resolution:</span>
-                <span class="debug-value" id="cameraInfo">Initializing...</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Status:</span>
-                <span class="debug-value" id="cameraStatus">Starting...</span>
-            </div>
         </div>
 
         <div class="debug-section">
@@ -296,18 +380,75 @@
     </div>
 
     <script>
-        // Modern AR application using updated libraries
-        class ModernETERRYAR {
+        // Mobile camera permission handling
+        let debugVisible = false;
+
+        function toggleDebug() {
+            const debug = document.getElementById('debugInfo');
+            debugVisible = !debugVisible;
+            debug.style.display = debugVisible ? 'block' : 'none';
+        }
+
+        async function requestCameraPermission() {
+            try {
+                document.getElementById('permissionStatus').textContent = 'Requesting...';
+                
+                // Request camera permission explicitly
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment', // Prefer back camera
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                // Stop the test stream
+                stream.getTracks().forEach(track => track.stop());
+                
+                document.getElementById('permissionStatus').textContent = 'Granted';
+                document.getElementById('cameraPrompt').style.display = 'none';
+                
+                // Initialize AR after permission granted
+                setTimeout(() => {
+                    new MobileETERRYAR();
+                }, 500);
+                
+            } catch (error) {
+                console.error('Camera permission denied:', error);
+                document.getElementById('permissionStatus').textContent = 'Denied';
+                document.getElementById('cameraError').style.display = 'flex';
+            }
+        }
+
+        function showCameraTroubleshooting() {
+            alert(`Camera Troubleshooting:
+
+1. HTTPS Required: Make sure you're using https:// (not http://)
+
+2. Browser Support: Use Chrome, Firefox, or Safari
+
+3. Permissions: 
+   - Allow camera access when prompted
+   - Check browser settings if blocked
+
+4. Mobile Tips:
+   - Use back camera (environment)
+   - Ensure good lighting
+   - Hold device steady
+
+5. iOS Safari: May need to refresh page after granting permissions`);
+        }
+
+        // Enhanced mobile AR application
+        class MobileETERRYAR {
             constructor() {
                 this.scene = null;
                 this.camera = null;
                 this.renderer = null;
-                this.clock = null;
                 this.arToolkitSource = null;
                 this.arToolkitContext = null;
                 this.markerRoot = null;
                 this.currentModel = null;
-                this.loadedTextures = [];
                 this.stats = {
                     meshes: 0,
                     materials: 0,
@@ -315,22 +456,22 @@
                     vertices: 0
                 };
 
-                // Model configuration - prioritize Draco compressed formats
+                // Mobile-optimized model options
                 this.modelOptions = [
                     {
-                        name: 'E-TERRY Compressed GLTF',
+                        name: 'E-TERRY Compressed GLTF (Mobile)',
                         path: 'models/ETERRY_compressed.gltf',
                         type: 'gltf',
                         compressed: true
                     },
                     {
-                        name: 'E-TERRY Compressed GLB',
+                        name: 'E-TERRY Compressed GLB (Mobile)',
                         path: 'models/ETERRY_compressed.glb',
                         type: 'glb',
                         compressed: true
                     },
                     {
-                        name: 'E-TERRY Standard GLB (Fallback)',
+                        name: 'E-TERRY Standard (Fallback)',
                         path: 'models/ETERRY.glb',
                         type: 'glb',
                         compressed: false
@@ -342,23 +483,23 @@
 
             async init() {
                 try {
-                    console.log('🚀 Initializing Modern E-TERRY AR');
+                    console.log('📱 Initializing Mobile E-TERRY AR');
                     
-                    this.updateProgress(0, 'Setting up 3D environment...');
+                    this.updateProgress(0, 'Setting up mobile AR...');
                     await this.setupScene();
                     
-                    this.updateProgress(25, 'Configuring camera...');
-                    await this.setupAR();
+                    this.updateProgress(25, 'Configuring mobile camera...');
+                    await this.setupMobileAR();
                     
-                    this.updateProgress(50, 'Loading compressed models...');
+                    this.updateProgress(50, 'Loading optimized models...');
                     await this.loadModel();
                     
-                    this.updateProgress(100, 'Ready!');
+                    this.updateProgress(100, 'Mobile AR Ready!');
                     setTimeout(() => this.hideLoadingScreen(), 1000);
 
                 } catch (error) {
-                    console.error('❌ Initialization failed:', error);
-                    this.showError('Failed to initialize AR', error.message);
+                    console.error('❌ Mobile AR initialization failed:', error);
+                    this.showError('Mobile AR Failed', error.message);
                 }
             }
 
@@ -371,103 +512,129 @@
             }
 
             async setupScene() {
-                // Create scene with modern Three.js
+                // Mobile-optimized scene setup
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.Camera();
                 this.scene.add(this.camera);
 
-                // Setup renderer with modern settings
+                // Mobile-optimized renderer
                 this.renderer = new THREE.WebGLRenderer({
                     antialias: true,
                     alpha: true,
                     preserveDrawingBuffer: false,
-                    powerPreference: "high-performance"
+                    powerPreference: "default", // Use default for mobile battery life
+                    precision: "mediump" // Medium precision for mobile
                 });
 
                 this.renderer.setClearColor(new THREE.Color('lightgrey'), 0);
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                
-                // Modern renderer settings
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit for performance
+
+                // Conservative mobile settings
                 this.renderer.outputEncoding = THREE.sRGBEncoding;
-                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                this.renderer.toneMappingExposure = 1.2;
-                this.renderer.shadowMap.enabled = false; // Disabled for AR performance
+                this.renderer.shadowMap.enabled = false;
 
                 document.body.appendChild(this.renderer.domElement);
-                this.clock = new THREE.Clock();
 
-                // Setup enhanced lighting
-                this.setupLighting();
+                // Mobile-friendly lighting
+                this.setupMobileLighting();
 
-                // Handle window resize
+                // Handle orientation changes
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => this.onWindowResize(), 500);
+                });
                 window.addEventListener('resize', () => this.onWindowResize());
                 
-                console.log('✅ Scene setup complete');
+                console.log('✅ Mobile scene setup complete');
             }
 
-            setupLighting() {
-                // Enhanced lighting for better model visibility
-                const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+            setupMobileLighting() {
+                // Simplified lighting for mobile performance
+                const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
                 this.scene.add(ambientLight);
 
-                const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
-                directionalLight1.position.set(2, 3, 1);
-                this.scene.add(directionalLight1);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(1, 1, 1);
+                this.scene.add(directionalLight);
 
-                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
-                directionalLight2.position.set(-2, -1, -1);
-                this.scene.add(directionalLight2);
-
-                const pointLight = new THREE.PointLight(0xffffff, 0.8, 10);
-                pointLight.position.set(0, 3, 3);
-                this.scene.add(pointLight);
-
-                console.log('✨ Enhanced lighting configured');
+                console.log('✨ Mobile lighting configured');
             }
 
-            async setupAR() {
+            async setupMobileAR() {
                 return new Promise((resolve, reject) => {
-                    // Initialize AR source with modern settings
+                    // Mobile-optimized AR source
                     this.arToolkitSource = new THREEx.ArToolkitSource({
                         sourceType: 'webcam',
-                        sourceWidth: 1280,
-                        sourceHeight: 720,
+                        // Mobile-friendly resolution
+                        sourceWidth: 640,
+                        sourceHeight: 480,
                         displayWidth: window.innerWidth,
-                        displayHeight: window.innerHeight
+                        displayHeight: window.innerHeight,
+                        // Mobile camera constraints
+                        facingMode: 'environment' // Use back camera
                     });
 
                     this.arToolkitSource.init(
                         () => {
-                            console.log('📷 Camera initialized');
+                            console.log('📱 Mobile camera initialized');
+                            document.getElementById('cameraStatus').textContent = 'Active';
                             this.updateCameraInfo();
                             this.onResize();
                             
-                            // Setup AR context
+                            // Mobile-optimized AR context
                             this.arToolkitContext = new THREEx.ArToolkitContext({
                                 cameraParametersUrl: 'data/camera_para.dat',
                                 detectionMode: 'mono',
-                                maxDetectionRate: 60,
-                                canvasWidth: 1280,
-                                canvasHeight: 720
+                                // Conservative mobile settings
+                                maxDetectionRate: 30, // Lower for mobile performance
+                                canvasWidth: 640,
+                                canvasHeight: 480,
+                                // Mobile optimization
+                                debug: false,
+                                labelingMode: 'black_region'
                             });
 
                             this.arToolkitContext.init(() => {
                                 this.camera.projectionMatrix.copy(
                                     this.arToolkitContext.getProjectionMatrix()
                                 );
-                                console.log('🎯 AR context ready');
+                                console.log('🎯 Mobile AR context ready');
                                 this.setupMarker();
                                 resolve();
                             });
                         },
                         (error) => {
-                            console.error('❌ Camera initialization failed:', error);
-                            document.getElementById('cameraError').style.display = 'block';
+                            console.error('❌ Mobile camera initialization failed:', error);
+                            document.getElementById('cameraStatus').textContent = 'Failed';
+                            
+                            // Show mobile-specific error info
+                            this.showMobileCameraError(error);
                             reject(error);
                         }
                     );
                 });
+            }
+
+            showMobileCameraError(error) {
+                const errorElement = document.getElementById('cameraError');
+                const errorText = errorElement.querySelector('p');
+                
+                let errorMessage = 'Camera access failed. ';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Please allow camera permissions and try again.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No camera found. Make sure your device has a camera.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage += 'Camera not supported. Try using HTTPS or a different browser.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMessage += 'Camera is being used by another app. Close other camera apps and try again.';
+                } else {
+                    errorMessage += `Error: ${error.message}`;
+                }
+                
+                errorText.innerHTML = errorMessage;
+                errorElement.style.display = 'flex';
             }
 
             updateCameraInfo() {
@@ -475,7 +642,10 @@
                 if (video && video.videoWidth && video.videoHeight) {
                     const resolution = `${video.videoWidth}x${video.videoHeight}`;
                     document.getElementById('cameraInfo').textContent = resolution;
-                    document.getElementById('cameraStatus').textContent = 'Active';
+                    
+                    // Log mobile camera info
+                    console.log(`📱 Mobile camera: ${resolution}`);
+                    console.log(`📱 Device pixel ratio: ${window.devicePixelRatio}`);
                 }
             }
 
@@ -486,66 +656,61 @@
                 new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
                     type: 'pattern',
                     patternUrl: 'data/eterry-logo.patt',
-                    changeMatrixMode: 'cameraTransformMatrix'
+                    changeMatrixMode: 'cameraTransformMatrix',
+                    // Mobile optimization
+                    smooth: true,
+                    smoothCount: 10,
+                    smoothTolerance: 0.01,
+                    smoothThreshold: 2
                 });
 
-                // Add visual marker indicator
-                const geometry = new THREE.PlaneGeometry(1, 1);
-                const material = new THREE.MeshBasicMaterial({
-                    color: 0x0000ff,
-                    opacity: 0.1,
-                    transparent: true
-                });
-                const plane = new THREE.Mesh(geometry, material);
-                plane.rotation.x = -Math.PI / 2;
-                this.markerRoot.add(plane);
-
-                document.getElementById('markerStatus').textContent = 'Ready';
-                console.log('🎯 Marker tracking configured');
+                document.getElementById('markerStatus').textContent = 'Mobile Ready';
+                console.log('🎯 Mobile marker tracking configured');
             }
 
             async loadModel() {
-                console.log('🤖 Starting model loading with Draco support...');
+                console.log('📱 Starting mobile model loading...');
                 
-                // Verify Draco support
                 if (typeof THREE.DRACOLoader === 'undefined') {
-                    throw new Error('DRACOLoader not available');
+                    console.warn('⚠️ DRACOLoader not available, using standard models');
+                    document.getElementById('formatInfo').textContent = 'Standard Only';
+                } else {
+                    document.getElementById('formatInfo').textContent = 'Draco Ready';
                 }
 
-                document.getElementById('formatInfo').textContent = 'Draco Supported';
-
-                // Try loading models in order of preference
+                // Try loading models with mobile-specific error handling
                 for (let i = 0; i < this.modelOptions.length; i++) {
                     const option = this.modelOptions[i];
-                    console.log(`📦 Attempting: ${option.name}`);
+                    console.log(`📱 Trying mobile model: ${option.name}`);
                     
                     try {
                         const success = await this.tryLoadGLTF(option);
                         if (success) {
-                            this.updateStatus(`Loaded: ${option.name}`, 'success');
+                            this.updateStatus(`Mobile loaded: ${option.name}`, 'success');
                             return;
                         }
                     } catch (error) {
-                        console.warn(`⚠️ Failed to load ${option.name}:`, error.message);
+                        console.warn(`⚠️ Mobile loading failed ${option.name}:`, error.message);
                     }
                 }
 
-                throw new Error('All model loading attempts failed');
+                // If all fails, create a simple test model
+                this.createMobileTestModel();
             }
 
             async tryLoadGLTF(modelOption) {
                 return new Promise((resolve, reject) => {
                     const loader = new THREE.GLTFLoader();
 
-                    // Setup Draco loader for compressed models
-                    if (modelOption.compressed) {
+                    // Setup Draco for mobile if available and needed
+                    if (modelOption.compressed && typeof THREE.DRACOLoader !== 'undefined') {
                         const dracoLoader = new THREE.DRACOLoader();
                         dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
                         dracoLoader.setDecoderConfig({ type: 'js' });
+                        dracoLoader.setWorkerLimit(2); // Limit workers for mobile
                         loader.setDRACOLoader(dracoLoader);
                         
-                        document.getElementById('compressionInfo').textContent = 'Draco Active';
-                        console.log('🗜️ Draco decoder configured');
+                        document.getElementById('compressionInfo').textContent = 'Mobile Draco';
                     } else {
                         document.getElementById('compressionInfo').textContent = 'Standard';
                     }
@@ -556,7 +721,7 @@
                         modelOption.path,
                         (gltf) => {
                             const loadTime = Date.now() - startTime;
-                            console.log(`✅ Model loaded in ${loadTime}ms`);
+                            console.log(`✅ Mobile model loaded in ${loadTime}ms`);
                             
                             this.processLoadedModel(gltf, modelOption);
                             resolve(true);
@@ -568,22 +733,52 @@
                                 const total = Math.round(progress.total / 1024);
                                 this.updateProgress(
                                     50 + (percent * 0.4), 
-                                    `Loading ${modelOption.name}: ${percent}% (${loaded}KB/${total}KB)`
+                                    `Mobile loading: ${percent}% (${loaded}KB/${total}KB)`
                                 );
                             }
                         },
                         (error) => {
-                            console.error(`❌ Loading failed:`, error);
+                            console.error(`❌ Mobile loading failed:`, error);
                             reject(error);
                         }
                     );
                 });
             }
 
-            processLoadedModel(gltf, modelOption) {
-                console.log('🎉 Processing loaded model...');
+            createMobileTestModel() {
+                console.log('🎨 Creating mobile test model...');
+                
+                // Simple colorful cube for mobile
+                const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0x4CAF50,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const cube = new THREE.Mesh(geometry, material);
+                cube.position.set(0, 0.25, 0);
+                
+                this.markerRoot.add(cube);
+                this.currentModel = cube;
+                
+                // Simple animation
+                const animate = () => {
+                    if (cube) {
+                        cube.rotation.y += 0.01;
+                    }
+                };
+                
+                this.stats = { meshes: 1, materials: 1, textures: 0, vertices: 8 };
+                this.updateDebugDisplay();
+                this.startAnimation(animate);
+                
+                this.updateStatus('Mobile test model ready', 'success');
+            }
 
-                // Remove existing model
+            processLoadedModel(gltf, modelOption) {
+                console.log('📱 Processing mobile model...');
+
                 if (this.currentModel) {
                     this.markerRoot.remove(this.currentModel);
                 }
@@ -591,30 +786,49 @@
                 this.currentModel = gltf.scene;
                 this.resetStats();
 
-                // Analyze model
+                // Mobile-optimized model processing
+                this.optimizeForMobile(gltf.scene);
                 this.analyzeModel(gltf.scene);
 
-                // Process materials and textures
-                this.processMaterials(gltf.scene);
-
-                // Position model for AR
+                // Scale for mobile viewing
                 this.currentModel.position.set(0, 0, 0);
                 this.currentModel.rotation.set(0, 0, 0);
-                this.currentModel.scale.set(1, 1, 1);
+                this.currentModel.scale.set(0.8, 0.8, 0.8); // Slightly smaller for mobile
 
-                // Add to marker
                 this.markerRoot.add(this.currentModel);
-
-                // Update UI
                 this.updateDebugDisplay();
                 this.startAnimation();
 
-                console.log(`✅ Model processed: ${this.stats.meshes} meshes, ${this.stats.materials} materials, ${this.stats.textures} textures`);
+                console.log(`✅ Mobile model processed: ${this.stats.meshes} meshes`);
+            }
+
+            optimizeForMobile(model) {
+                model.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        const materials = Array.isArray(child.material) ? child.material : [child.material];
+                        
+                        materials.forEach((material) => {
+                            // Mobile optimizations
+                            material.side = THREE.FrontSide; // Single-sided for performance
+                            material.transparent = false; // Avoid transparency if possible
+                            material.needsUpdate = true;
+                            
+                            // Optimize textures for mobile
+                            const textureSlots = ['map', 'normalMap'];
+                            textureSlots.forEach((slot) => {
+                                if (material[slot]) {
+                                    material[slot].generateMipmaps = false; // Skip mipmaps for mobile
+                                    material[slot].minFilter = THREE.LinearFilter;
+                                    material[slot].magFilter = THREE.LinearFilter;
+                                }
+                            });
+                        });
+                    }
+                });
             }
 
             resetStats() {
                 this.stats = { meshes: 0, materials: 0, textures: 0, vertices: 0 };
-                this.loadedTextures = [];
             }
 
             analyzeModel(model) {
@@ -629,38 +843,21 @@
                         if (child.material) {
                             if (Array.isArray(child.material)) {
                                 this.stats.materials += child.material.length;
+                                child.material.forEach((mat) => this.countTextures(mat));
                             } else {
                                 this.stats.materials++;
+                                this.countTextures(child.material);
                             }
                         }
                     }
                 });
             }
 
-            processMaterials(model) {
-                model.traverse((child) => {
-                    if (child.isMesh && child.material) {
-                        const materials = Array.isArray(child.material) ? child.material : [child.material];
-                        
-                        materials.forEach((material) => {
-                            // Count textures
-                            const textureSlots = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'];
-                            textureSlots.forEach((slot) => {
-                                if (material[slot]) {
-                                    this.stats.textures++;
-                                    this.loadedTextures.push(material[slot]);
-                                    
-                                    // Optimize texture settings
-                                    material[slot].flipY = false;
-                                    material[slot].generateMipmaps = true;
-                                    material[slot].needsUpdate = true;
-                                }
-                            });
-
-                            // Enhance material properties
-                            material.side = THREE.DoubleSide;
-                            material.needsUpdate = true;
-                        });
+            countTextures(material) {
+                const textureSlots = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'];
+                textureSlots.forEach((slot) => {
+                    if (material[slot]) {
+                        this.stats.textures++;
                     }
                 });
             }
@@ -669,16 +866,27 @@
                 document.getElementById('meshCount').textContent = this.stats.meshes;
                 document.getElementById('materialCount').textContent = this.stats.materials;
                 document.getElementById('textureCount').textContent = this.stats.textures;
-                document.getElementById('vertexCount').textContent = this.stats.vertices.toLocaleString();
             }
 
-            startAnimation() {
+            startAnimation(customAnimation = null) {
                 const animate = () => {
                     requestAnimationFrame(animate);
                     
-                    // Update AR
+                    // Custom animation for test models
+                    if (customAnimation) {
+                        customAnimation();
+                    }
+                    
+                    // Update AR tracking
                     if (this.arToolkitSource && this.arToolkitSource.ready !== false) {
                         this.arToolkitContext.update(this.arToolkitSource.domElement);
+                        
+                        // Update tracking status
+                        if (this.markerRoot.visible) {
+                            document.getElementById('trackingStatus').textContent = 'Active';
+                        } else {
+                            document.getElementById('trackingStatus').textContent = 'Searching...';
+                        }
                     }
                     
                     // Render
@@ -686,23 +894,31 @@
                 };
                 
                 animate();
-                console.log('🎬 Animation loop started');
+                console.log('🎬 Mobile animation loop started');
             }
 
             onResize() {
                 if (this.arToolkitSource) {
-                    this.arToolkitSource.onResizeElement();
-                    this.arToolkitSource.copyElementSizeTo(this.renderer.domElement);
-                    
-                    if (this.arToolkitContext && this.arToolkitContext.arController) {
-                        this.arToolkitSource.copyElementSizeTo(this.arToolkitContext.arController.canvas);
+                    try {
+                        this.arToolkitSource.onResizeElement();
+                        this.arToolkitSource.copyElementSizeTo(this.renderer.domElement);
+                        
+                        if (this.arToolkitContext && this.arToolkitContext.arController) {
+                            this.arToolkitSource.copyElementSizeTo(this.arToolkitContext.arController.canvas);
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Mobile resize warning (usually harmless):', error);
                     }
                 }
             }
 
             onWindowResize() {
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.onResize();
+                // Mobile-specific resize handling
+                setTimeout(() => {
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                    this.onResize();
+                    console.log('📱 Mobile window resized');
+                }, 100);
             }
 
             updateStatus(text, type = 'info') {
@@ -714,50 +930,148 @@
                     statusBar.className = '';
                     statusBar.classList.add(`status-${type}`);
                     statusBar.style.display = 'block';
+                    
+                    // Auto-hide success messages on mobile
+                    if (type === 'success') {
+                        setTimeout(() => {
+                            statusBar.style.display = 'none';
+                        }, 3000);
+                    }
                 }
                 
-                console.log(`📊 Status: ${text}`);
+                console.log(`📱 Mobile Status: ${text}`);
             }
 
             showError(title, message) {
                 this.updateStatus(`Error: ${title}`, 'error');
-                console.error(`❌ ${title}: ${message}`);
+                console.error(`❌ Mobile ${title}: ${message}`);
                 
-                // Update loading screen with error
                 const loadingText = document.getElementById('loadingText');
                 if (loadingText) {
-                    loadingText.textContent = `Error: ${title}`;
+                    loadingText.textContent = `Mobile Error: ${title}`;
                     loadingText.style.color = '#ff6b6b';
                 }
+
+                // Show mobile-friendly error message
+                setTimeout(() => {
+                    alert(`Mobile AR Error: ${title}\n\n${message}\n\nTry:\n- Refresh the page\n- Check camera permissions\n- Use HTTPS\n- Try a different browser`);
+                }, 2000);
             }
 
             hideLoadingScreen() {
                 const loadingScreen = document.getElementById('loadingScreen');
                 if (loadingScreen) {
                     loadingScreen.style.opacity = '0';
-                    loadingScreen.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                    loadingScreen.style.transition = 'opacity 1s ease';
                     setTimeout(() => {
                         loadingScreen.style.display = 'none';
-                    }, 800);
+                    }, 1000);
                 }
             }
         }
 
-        // Initialize when page loads
+        // Check if we're on mobile
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        // Check if HTTPS is being used
+        function isHTTPS() {
+            return location.protocol === 'https:' || location.hostname === 'localhost';
+        }
+
+        // Mobile-specific initialization
         window.addEventListener('load', () => {
-            // Small delay to ensure all scripts are loaded
+            console.log('📱 Mobile AR page loaded');
+            
+            // Check mobile requirements
+            if (isMobile()) {
+                console.log('📱 Mobile device detected');
+                document.getElementById('loadingText').textContent = 'Mobile device detected...';
+            }
+            
+            if (!isHTTPS()) {
+                console.warn('⚠️ HTTPS required for mobile camera');
+                document.getElementById('loadingText').textContent = 'HTTPS required for camera access';
+                document.getElementById('loadingText').style.color = '#ff9800';
+                
+                setTimeout(() => {
+                    alert('HTTPS Required!\n\nCamera access requires HTTPS. Please use:\n- https:// instead of http://\n- Or test on localhost');
+                }, 2000);
+                return;
+            }
+            
+            // Auto-request camera permission on mobile
             setTimeout(() => {
-                new ModernETERRYAR();
-            }, 500);
+                if (isMobile()) {
+                    document.getElementById('cameraPrompt').style.display = 'block';
+                    requestCameraPermission();
+                } else {
+                    // Desktop - start immediately
+                    new MobileETERRYAR();
+                }
+            }, 1000);
         });
 
-        // Global error handling
+        // Mobile gesture handling
+        let touchStartTime = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartTime = Date.now();
+        });
+
+        document.addEventListener('touchend', (e) => {
+            const touchDuration = Date.now() - touchStartTime;
+            
+            // Long press to toggle debug (mobile-friendly)
+            if (touchDuration > 1000) {
+                toggleDebug();
+                e.preventDefault();
+            }
+        });
+
+        // Prevent mobile zoom
+        document.addEventListener('touchmove', (e) => {
+            if (e.scale !== 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Mobile error handling
         window.addEventListener('error', (e) => {
-            console.error('💥 JavaScript Error:', e.error);
+            console.error('💥 Mobile JavaScript Error:', e.error);
+            document.getElementById('cameraStatus').textContent = 'JS Error';
         });
 
         window.addEventListener('unhandledrejection', (e) => {
-            console.error('💥 Unhandled Promise Rejection:', e.reason);
+            console.error('💥 Mobile Promise Rejection:', e.reason);
+            document.getElementById('cameraStatus').textContent = 'Promise Error';
+        });
+
+        // Mobile-specific camera permission check
+        async function checkCameraSupport() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                console.log(`📱 Found ${videoDevices.length} camera(s)`);
+                
+                if (videoDevices.length === 0) {
+                    throw new Error('No cameras found on this device');
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Camera support check failed:', error);
+                return false;
+            }
+        }
+
+        // Mobile orientation handling
+        window.addEventListener('orientationchange', () => {
+            console.log('📱 Orientation changed');
+            setTimeout(() => {
+                location.reload(); // Simple solution for orientation changes
+            }, 1000);
         });
     </script>
 </body>

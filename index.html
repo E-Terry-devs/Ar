@@ -1,33 +1,9 @@
-testPatternFile() {
-                // Test if pattern file exists and is accessible
-                fetch('data/hiro.patt')
-                    .then(response => {
-                        if (response.ok) {
-                            return response.text();
-                        } else {
-                            throw new Error(`Pattern file not found: ${response.status}`);
-                        }
-                    })
-                    .then(patternData => {
-                        console.log('✅ Pattern file accessible');
-                        console.log(`📄 Pattern file size: ${patternData.length} characters`);
-                        
-                        // Basic pattern validation
-                        const lines = patternData.split('\n').filter(line => line.trim());
-                        console.log(`📊 Pattern lines: ${lines.length} (should be ~580 for AR.js patterns)`);
-                        
-                        // Update debug display
-                        document.getElementById('patternSize').textContent = `${lines.length} lines`;
-                        
-                        if (lines.length < 500) {
-                            console.warn('⚠️ Pattern file seems too short - might be corrupted');
-                            console.warn('💡 Standard AR.js patterns have ~580 lines');
-                            console.warn('🔧 Try regenerating pattern or use st<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Mobile E-TERRY AR - Draco Compressed Models</title>
+    <title>Mobile E-TERRY AR - Fixed Alignment</title>
     
     <!-- HTTPS required for mobile camera access -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -125,28 +101,6 @@ testPatternFile() {
             line-height: 1.4;
         }
 
-        /* Camera permission prompt */
-        .camera-prompt {
-            background: rgba(76, 175, 80, 0.9);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: none;
-        }
-
-        .camera-prompt button {
-            background: white;
-            color: #4CAF50;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: bold;
-            margin-top: 10px;
-            cursor: pointer;
-            width: 100%;
-        }
-
         /* Mobile status bar */
         #statusBar {
             position: fixed;
@@ -185,6 +139,7 @@ testPatternFile() {
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             max-height: 30vh;
             overflow-y: auto;
+            display: none;
         }
 
         .debug-section {
@@ -238,47 +193,6 @@ testPatternFile() {
             border-radius: 2px;
         }
 
-        /* Camera error overlay */
-        .camera-error {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(244, 67, 54, 0.95);
-            color: white;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            z-index: 1001;
-            padding: 20px;
-        }
-
-        .camera-error h3 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-        }
-
-        .camera-error p {
-            margin-bottom: 20px;
-            line-height: 1.5;
-            max-width: 300px;
-        }
-
-        .camera-error button {
-            background: white;
-            color: #f44336;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            margin: 5px;
-        }
-
         /* Hide debug panel toggle for mobile */
         .debug-toggle {
             position: fixed;
@@ -316,12 +230,7 @@ testPatternFile() {
         <div class="loading-card">
             <h1 class="loading-title">E-TERRY AR</h1>
             <div class="spinner"></div>
-            <p class="loading-text" id="loadingText">Requesting camera access...</p>
-            
-            <div class="camera-prompt" id="cameraPrompt">
-                <p>📷 Camera access is required for AR</p>
-                <button onclick="requestCameraPermission()">Allow Camera</button>
-            </div>
+            <p class="loading-text" id="loadingText">Initializing AR...</p>
             
             <div class="progress-container">
                 <div class="progress-bar" id="progressBar"></div>
@@ -335,19 +244,9 @@ testPatternFile() {
 
     <button class="debug-toggle" onclick="toggleDebug()">🔧</button>
 
-    <div class="camera-error" id="cameraError">
-        <h3>📷 Camera Access Required</h3>
-        <p>This AR experience needs camera access to work. Please:</p>
-        <p>1. Make sure you're using HTTPS<br>
-           2. Allow camera permissions<br>
-           3. Use the back camera if available</p>
-        <button onclick="requestCameraPermission()">Try Again</button>
-        <button onclick="showCameraTroubleshooting()">Troubleshoot</button>
-    </div>
-    
     <div id="debugInfo">
         <div class="debug-section">
-            <div class="debug-header">📱 Mobile Camera</div>
+            <div class="debug-header">📱 Camera Status</div>
             <div class="debug-row">
                 <span class="debug-label">Status:</span>
                 <span class="debug-value" id="cameraStatus">Starting...</span>
@@ -356,204 +255,87 @@ testPatternFile() {
                 <span class="debug-label">Resolution:</span>
                 <span class="debug-value" id="cameraInfo">Detecting...</span>
             </div>
-            <div class="debug-row">
-                <span class="debug-label">Permissions:</span>
-                <span class="debug-value" id="permissionStatus">Checking...</span>
-            </div>
         </div>
 
         <div class="debug-section">
-            <div class="debug-header">🗜️ Model Loading</div>
+            <div class="debug-header">📊 Model Info</div>
             <div class="debug-row">
-                <span class="debug-label">Format:</span>
-                <span class="debug-value" id="formatInfo">Checking...</span>
+                <span class="debug-label">Type:</span>
+                <span class="debug-value" id="modelType">N/A</span>
             </div>
-            <div class="debug-row">
-                <span class="debug-label">Compression:</span>
-                <span class="debug-value" id="compressionInfo">N/A</span>
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">📊 Model Stats</div>
             <div class="debug-row">
                 <span class="debug-label">Meshes:</span>
                 <span class="debug-value" id="meshCount">0</span>
             </div>
             <div class="debug-row">
-                <span class="debug-label">Materials:</span>
-                <span class="debug-value" id="materialCount">0</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Textures:</span>
-                <span class="debug-value" id="textureCount">0</span>
+                <span class="debug-label">Position:</span>
+                <span class="debug-value" id="modelPosition">(0, 0, 0)</span>
             </div>
         </div>
 
         <div class="debug-section">
             <div class="debug-header">🎯 AR Tracking</div>
             <div class="debug-row">
-                <span class="debug-label">Marker:</span>
-                <span class="debug-value" id="markerStatus">Loading...</span>
+                <span class="debug-label">Pattern:</span>
+                <span class="debug-value" id="patternStatus">eterry-logo.patt</span>
             </div>
             <div class="debug-row">
                 <span class="debug-label">Tracking:</span>
                 <span class="debug-value" id="trackingStatus">Inactive</span>
             </div>
             <div class="debug-row">
-                <span class="debug-label">Model Pos:</span>
-                <span class="debug-value" id="modelPosition">N/A</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Orientation:</span>
-                <span class="debug-value" id="modelOrientation">Fixed</span>
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">🔧 Pattern & Camera Files</div>
-            <div class="debug-row">
-                <span class="debug-label">Pattern:</span>
-                <span class="debug-value" id="patternStatus">Testing...</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Pattern Size:</span>
-                <span class="debug-value" id="patternSize">Unknown</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Camera Params:</span>
-                <span class="debug-value" id="cameraParamsStatus">Default</span>
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">👁️ Model Behind Marker?</div>
-            <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
-                <strong>Applied fixes:</strong><br>
-                • 180° Y rotation (flip front/back)<br>
-                • +Z position (move forward)<br>
-                • Should now appear ON marker<br>
-                <strong>Still behind?</strong> Check console logs
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">👁️ Troubleshooting Alignment</div>
-            <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
-                If visuals appear away from marker:<br>
-                • <strong>Try standard Hiro pattern</strong><br>
-                • Check data/eterry-logo.patt exists<br>
-                • Ensure good lighting<br>
-                • Keep marker flat & steady<br>
-                • Look for numbered corners (1-4)
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">📋 Quick Test</div>
-            <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
-                <strong>Download Hiro pattern:</strong><br>
-                github.com/AR-js-org/AR.js/<br>
-                examples/marker-based/<br>
-                📄 Save as data/hiro.patt<br>
-                🖼️ Print the Hiro marker image
+                <span class="debug-label">Marker Visible:</span>
+                <span class="debug-value" id="markerVisible">No</span>
             </div>
         </div>
     </div>
 
     <script>
-        // Mobile camera permission handling
+        // Global debug toggle
         let debugVisible = false;
-
         function toggleDebug() {
             const debug = document.getElementById('debugInfo');
             debugVisible = !debugVisible;
             debug.style.display = debugVisible ? 'block' : 'none';
         }
 
-        async function requestCameraPermission() {
-            try {
-                document.getElementById('permissionStatus').textContent = 'Requesting...';
-                
-                // Request camera permission explicitly
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: 'environment', // Prefer back camera
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    } 
-                });
-                
-                // Stop the test stream
-                stream.getTracks().forEach(track => track.stop());
-                
-                document.getElementById('permissionStatus').textContent = 'Granted';
-                document.getElementById('cameraPrompt').style.display = 'none';
-                
-                // Initialize AR after permission granted
-                setTimeout(() => {
-                    new MobileETERRYAR();
-                }, 500);
-                
-            } catch (error) {
-                console.error('Camera permission denied:', error);
-                document.getElementById('permissionStatus').textContent = 'Denied';
-                document.getElementById('cameraError').style.display = 'flex';
-            }
+        // Wait for all scripts to load
+        window.addEventListener('load', function() {
+            console.log('🚀 Starting Mobile E-TERRY AR (Fixed Version)');
+            setTimeout(initializeApp, 500);
+        });
+
+        function initializeApp() {
+            new MobileETERRYAR();
         }
 
-        function showCameraTroubleshooting() {
-            alert(`Camera Troubleshooting:
-
-1. HTTPS Required: Make sure you're using https:// (not http://)
-
-2. Browser Support: Use Chrome, Firefox, or Safari
-
-3. Permissions: 
-   - Allow camera access when prompted
-   - Check browser settings if blocked
-
-4. Mobile Tips:
-   - Use back camera (environment)
-   - Ensure good lighting
-   - Hold device steady
-
-5. iOS Safari: May need to refresh page after granting permissions`);
-        }
-
-        // Enhanced mobile AR application
         class MobileETERRYAR {
             constructor() {
+                // Core Three.js variables
                 this.scene = null;
                 this.camera = null;
                 this.renderer = null;
+                this.clock = null;
+                
+                // AR.js variables
                 this.arToolkitSource = null;
                 this.arToolkitContext = null;
                 this.markerRoot = null;
+                this.markerControls = null;
+                
+                // Model
                 this.currentModel = null;
-                this.stats = {
-                    meshes: 0,
-                    materials: 0,
-                    textures: 0,
-                    vertices: 0
-                };
-
-                // Mobile-optimized model options
+                
+                // Model options
                 this.modelOptions = [
                     {
-                        name: 'E-TERRY Compressed GLTF (Mobile)',
-                        path: 'models/ETERRY_compressed.gltf',
-                        type: 'gltf',
-                        compressed: true
-                    },
-                    {
-                        name: 'E-TERRY Compressed GLB (Mobile)',
+                        name: 'E-TERRY Compressed GLB',
                         path: 'models/ETERRY_compressed.glb',
                         type: 'glb',
                         compressed: true
                     },
                     {
-                        name: 'E-TERRY Standard (Fallback)',
+                        name: 'E-TERRY Standard GLB',
                         path: 'models/ETERRY.glb',
                         type: 'glb',
                         compressed: false
@@ -567,21 +349,24 @@ testPatternFile() {
                 try {
                     console.log('📱 Initializing Mobile E-TERRY AR');
                     
-                    this.updateProgress(0, 'Setting up mobile AR...');
-                    await this.setupScene();
+                    this.updateProgress(10, 'Setting up 3D scene...');
+                    this.setupScene();
                     
-                    this.updateProgress(25, 'Configuring mobile camera...');
-                    await this.setupMobileAR();
+                    this.updateProgress(30, 'Setting up AR...');
+                    await this.setupAR();
                     
-                    this.updateProgress(50, 'Loading optimized models...');
+                    this.updateProgress(50, 'Loading 3D model...');
                     await this.loadModel();
                     
-                    this.updateProgress(100, 'Mobile AR Ready!');
+                    this.updateProgress(90, 'Starting AR tracking...');
+                    this.startAnimation();
+                    
+                    this.updateProgress(100, 'AR Ready!');
                     setTimeout(() => this.hideLoadingScreen(), 1000);
 
                 } catch (error) {
-                    console.error('❌ Mobile AR initialization failed:', error);
-                    this.showError('Mobile AR Failed', error.message);
+                    console.error('❌ Initialization failed:', error);
+                    this.showError('Initialization Failed', error.message);
                 }
             }
 
@@ -593,667 +378,246 @@ testPatternFile() {
                 if (loadingText) loadingText.textContent = text;
             }
 
-            async setupScene() {
-                // Mobile-optimized scene setup
+            setupScene() {
+                // Initialize scene - EXACTLY like working code
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.Camera();
                 this.scene.add(this.camera);
 
-                // Mobile-optimized renderer
+                // Simple lighting - EXACTLY like working code
+                const ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
+                this.scene.add(ambientLight);
+
+                // Setup renderer - EXACTLY like working code
                 this.renderer = new THREE.WebGLRenderer({
                     antialias: true,
-                    alpha: true,
-                    preserveDrawingBuffer: false,
-                    powerPreference: "default", // Use default for mobile battery life
-                    precision: "mediump" // Medium precision for mobile
+                    alpha: true
                 });
 
                 this.renderer.setClearColor(new THREE.Color('lightgrey'), 0);
                 this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit for performance
-
-                // Conservative mobile settings
-                this.renderer.outputEncoding = THREE.sRGBEncoding;
-                this.renderer.shadowMap.enabled = false;
-
+                this.renderer.domElement.style.position = 'absolute';
+                this.renderer.domElement.style.top = '0px';
+                this.renderer.domElement.style.left = '0px';
                 document.body.appendChild(this.renderer.domElement);
 
-                // Mobile-friendly lighting
-                this.setupMobileLighting();
+                this.clock = new THREE.Clock();
 
-                // Handle orientation changes
-                window.addEventListener('orientationchange', () => {
-                    setTimeout(() => this.onWindowResize(), 500);
-                });
+                // Handle window resize
                 window.addEventListener('resize', () => this.onWindowResize());
                 
-                console.log('✅ Mobile scene setup complete');
+                console.log('✅ Scene setup complete');
             }
 
-            setupMobileLighting() {
-                // Simplified lighting for mobile performance
-                const ambientLight = new THREE.AmbientLight(0x404040, 1.0);
-                this.scene.add(ambientLight);
-
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(1, 1, 1);
-                this.scene.add(directionalLight);
-
-                console.log('✨ Mobile lighting configured');
-            }
-
-            async setupMobileAR() {
+            async setupAR() {
                 return new Promise((resolve, reject) => {
-                    // Mobile-optimized AR source
+                    // SIMPLIFIED AR source - EXACTLY like working code
                     this.arToolkitSource = new THREEx.ArToolkitSource({
-                        sourceType: 'webcam',
-                        // More conservative mobile resolution for better tracking
-                        sourceWidth: 480,
-                        sourceHeight: 360,
-                        displayWidth: window.innerWidth,
-                        displayHeight: window.innerHeight,
-                        // Mobile camera constraints
-                        facingMode: 'environment' // Use back camera
+                        sourceType: 'webcam'
                     });
 
-                    this.arToolkitSource.init(
-                        () => {
-                            console.log('📱 Mobile camera initialized');
-                            document.getElementById('cameraStatus').textContent = 'Active';
-                            this.updateCameraInfo();
-                            this.onResize();
-                            
-                            // Try without camera_para.dat first (use defaults)
-                            console.log('🔧 Testing without camera_para.dat file...');
-                            this.arToolkitContext = new THREEx.ArToolkitContext({
-                                // Try without custom camera parameters first
-                                // cameraParametersUrl: 'data/camera_para.dat',
-                                detectionMode: 'mono',
-                                // More aggressive mobile settings for better tracking
-                                maxDetectionRate: 60,
-                                canvasWidth: 480,
-                                canvasHeight: 360,
-                                debug: false,
-                                labelingMode: 'black_region',
-                                // Better tracking parameters
-                                matrixCodeType: '3x3',
-                                patternRatio: 0.5
-                            });
+                    this.arToolkitSource.init(() => {
+                        console.log('📷 AR camera ready');
+                        document.getElementById('cameraStatus').textContent = 'Active';
+                        this.updateCameraInfo();
+                        this.onResize();
+                        
+                        // SIMPLIFIED AR context - EXACTLY like working code
+                        this.arToolkitContext = new THREEx.ArToolkitContext({
+                            cameraParametersUrl: 'data/camera_para.dat',
+                            detectionMode: 'mono'
+                        });
 
-                            this.arToolkitContext.init(() => {
-                                this.camera.projectionMatrix.copy(
-                                    this.arToolkitContext.getProjectionMatrix()
-                                );
-                                console.log('🎯 Mobile AR context ready (using default camera params)');
-                                this.setupMarker();
-                                resolve();
-                            }, (error) => {
-                                console.error('❌ AR context failed:', error);
-                                console.log('🔄 Trying with camera_para.dat...');
-                                
-                                // Fallback: try with camera_para.dat
-                                this.arToolkitContext = new THREEx.ArToolkitContext({
-                                    cameraParametersUrl: 'data/camera_para.dat',
-                                    detectionMode: 'mono',
-                                    maxDetectionRate: 60,
-                                    canvasWidth: 480,
-                                    canvasHeight: 360,
-                                    debug: false,
-                                    labelingMode: 'black_region',
-                                    matrixCodeType: '3x3',
-                                    patternRatio: 0.5
-                                });
-
-                                this.arToolkitContext.init(() => {
-                                    this.camera.projectionMatrix.copy(
-                                        this.arToolkitContext.getProjectionMatrix()
-                                    );
-                                    console.log('🎯 Mobile AR context ready (using camera_para.dat)');
-                                    this.setupMarker();
-                                    resolve();
-                                }, (finalError) => {
-                                    console.error('❌ Both attempts failed:', finalError);
-                                    reject(finalError);
-                                });
-                            });
-                        },
-                        (error) => {
-                            console.error('❌ Mobile camera initialization failed:', error);
-                            document.getElementById('cameraStatus').textContent = 'Failed';
-                            
-                            // Show mobile-specific error info
-                            this.showMobileCameraError(error);
-                            reject(error);
-                        }
-                    );
+                        this.arToolkitContext.init(() => {
+                            this.camera.projectionMatrix.copy(
+                                this.arToolkitContext.getProjectionMatrix()
+                            );
+                            console.log('🎯 AR tracking ready');
+                            this.setupMarker();
+                            resolve();
+                        });
+                    }, (error) => {
+                        console.error('❌ Camera initialization failed:', error);
+                        document.getElementById('cameraStatus').textContent = 'Failed';
+                        reject(error);
+                    });
                 });
-            }
-
-            showMobileCameraError(error) {
-                const errorElement = document.getElementById('cameraError');
-                const errorText = errorElement.querySelector('p');
-                
-                let errorMessage = 'Camera access failed. ';
-                
-                if (error.name === 'NotAllowedError') {
-                    errorMessage += 'Please allow camera permissions and try again.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMessage += 'No camera found. Make sure your device has a camera.';
-                } else if (error.name === 'NotSupportedError') {
-                    errorMessage += 'Camera not supported. Try using HTTPS or a different browser.';
-                } else if (error.name === 'NotReadableError') {
-                    errorMessage += 'Camera is being used by another app. Close other camera apps and try again.';
-                } else {
-                    errorMessage += `Error: ${error.message}`;
-                }
-                
-                errorText.innerHTML = errorMessage;
-                errorElement.style.display = 'flex';
-            }
-
-            updateCameraInfo() {
-                const video = this.arToolkitSource.domElement;
-                if (video && video.videoWidth && video.videoHeight) {
-                    const resolution = `${video.videoWidth}x${video.videoHeight}`;
-                    document.getElementById('cameraInfo').textContent = resolution;
-                    
-                    // Log mobile camera info
-                    console.log(`📱 Mobile camera: ${resolution}`);
-                    console.log(`📱 Device pixel ratio: ${window.devicePixelRatio}`);
-                }
             }
 
             setupMarker() {
+                // Setup marker - EXACTLY like working code
                 this.markerRoot = new THREE.Group();
                 this.scene.add(this.markerRoot);
 
-                // Test with multiple pattern options
-                const patternOptions = [
-                    'data/eterry-logo.patt',
-                    'data/hiro.patt',  // Standard test pattern
-                    'data/kanji.patt'  // Another standard pattern
-                ];
-
-                // Try the primary pattern first
-                console.log('🎯 Attempting to load pattern: data/eterry-logo.patt');
-                
-                try {
-                    // Create marker controls with better tracking settings
-                    this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
+                // SIMPLIFIED marker controls - EXACTLY like working code
+                this.markerControls = new THREEx.ArMarkerControls(
+                    this.arToolkitContext, 
+                    this.markerRoot, 
+                    {
                         type: 'pattern',
-                        patternUrl: 'data/hiro.patt',
-                        // Try different matrix modes for better alignment
-                        changeMatrixMode: 'cameraTransformMatrix',
-                        // More aggressive smoothing for mobile
-                        smooth: true,
-                        smoothCount: 3, // Reduced for more responsive tracking
-                        smoothTolerance: 0.02,
-                        smoothThreshold: 5,
-                        // Better pattern detection
-                        minConfidence: 0.6
-                    });
+                        patternUrl: 'data/eterry-logo.patt'
+                    }
+                );
 
-                    console.log('✅ Pattern loaded successfully: data/eterry-logo.patt');
-                } catch (error) {
-                    console.error('❌ Failed to load custom pattern:', error);
-                    console.log('🔄 Falling back to standard Hiro pattern...');
-                    
-                    // Fallback to standard pattern
-                    this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
-                        type: 'pattern',
-                        patternUrl: 'data/hiro.patt',
-                        changeMatrixMode: 'cameraTransformMatrix',
-                        smooth: true,
-                        smoothCount: 3,
-                        smoothTolerance: 0.02,
-                        smoothThreshold: 5,
-                        minConfidence: 0.6
-                    });
-                }
-
-                // Pattern file diagnostics
-                this.testPatternFile();
-
-                // Test different pattern files if available
-                console.log('🎯 Current pattern: data/eterry-logo.patt');
-                console.log('💡 Pattern troubleshooting:');
-                console.log('   1. Make sure eterry-logo.patt exists in data/ folder');
-                console.log('   2. Try downloading standard hiro.patt for testing');
-                console.log('   3. Check if pattern file is corrupted');
-                console.log('   4. Ensure pattern was created properly');
-
-                // Add visual marker reference (helps with positioning)
-                this.addMarkerVisuals();
-
-                // Add calibration helper
-                this.addCalibrationHelper();
-
-                document.getElementById('markerStatus').textContent = 'Pattern Ready';
-                console.log('🎯 Mobile marker tracking configured with pattern diagnostics');
-            }
-
-            testPatternFile() {
-                // Test if pattern file exists and is accessible
-                fetch('data/eterry-logo.patt')
-                    .then(response => {
-                        if (response.ok) {
-                            return response.text();
-                        } else {
-                            throw new Error(`Pattern file not found: ${response.status}`);
-                        }
-                    })
-                    .then(patternData => {
-                        console.log('✅ Pattern file accessible');
-                        console.log(`📄 Pattern file size: ${patternData.length} characters`);
-                        
-                        // Basic pattern validation
-                        const lines = patternData.split('\n').filter(line => line.trim());
-                        console.log(`📊 Pattern lines: ${lines.length} (should be ~580 for AR.js patterns)`);
-                        
-                        if (lines.length < 500) {
-                            console.warn('⚠️ Pattern file seems too short - might be corrupted');
-                        }
-                        
-                        // Check for common pattern markers
-                        if (patternData.includes('255 255 255') || patternData.includes('0 0 0')) {
-                            console.log('✅ Pattern contains expected RGB values');
-                        } else {
-                            console.warn('⚠️ Pattern format might be incorrect');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('❌ Pattern file test failed:', error);
-                        console.log('💡 Solutions:');
-                        console.log('   1. Check if data/eterry-logo.patt exists');
-                        console.log('   2. Download a working pattern from AR.js examples');
-                        console.log('   3. Use online pattern generator to recreate');
-                        console.log('   4. Try with standard hiro.patt for testing');
-                        
-                        document.getElementById('markerStatus').textContent = 'Pattern Missing!';
-                    });
-            }
-
-            addCalibrationHelper() {
-                // Add numbered corners to help identify marker orientation
-                const cornerLabels = ['1', '2', '3', '4'];
-                const cornerPositions = [
-                    [-0.4, 0.02, -0.4], // Top-left
-                    [0.4, 0.02, -0.4],  // Top-right  
-                    [0.4, 0.02, 0.4],   // Bottom-right
-                    [-0.4, 0.02, 0.4]   // Bottom-left
-                ];
-
-                cornerPositions.forEach((pos, i) => {
-                    // Create text geometry for corner numbers
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 64;
-                    canvas.height = 64;
-                    const ctx = canvas.getContext('2d');
-                    
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, 64, 64);
-                    ctx.fillStyle = 'black';
-                    ctx.font = 'bold 48px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(cornerLabels[i], 32, 45);
-                    
-                    const texture = new THREE.CanvasTexture(canvas);
-                    const material = new THREE.MeshBasicMaterial({ 
-                        map: texture,
-                        transparent: true,
-                        alphaTest: 0.1
-                    });
-                    
-                    const geometry = new THREE.PlaneGeometry(0.1, 0.1);
-                    const label = new THREE.Mesh(geometry, material);
-                    label.position.set(pos[0], pos[1], pos[2]);
-                    label.rotation.x = -Math.PI / 2;
-                    
-                    this.markerRoot.add(label);
+                // Add test plane - EXACTLY like working code
+                const geometry = new THREE.PlaneBufferGeometry(1, 1);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x0000ff, 
+                    opacity: 0.5,
+                    transparent: true
                 });
+                const testMesh = new THREE.Mesh(geometry, material);
+                testMesh.rotation.x = -Math.PI/2;
+                this.markerRoot.add(testMesh);
 
-                console.log('🔢 Added corner calibration numbers (1-4)');
-            }
-
-            addMarkerVisuals() {
-                // Create a coordinate system helper to visualize marker position
-                const axesHelper = new THREE.AxesHelper(0.3); // Smaller axes
-                this.markerRoot.add(axesHelper);
-
-                // Add a semi-transparent plane to show marker bounds (make it more visible)
-                const markerGeometry = new THREE.PlaneGeometry(1, 1);
-                const markerMaterial = new THREE.MeshBasicMaterial({
-                    color: 0x00ff00,
-                    opacity: 0.5, // More visible
-                    transparent: true,
-                    side: THREE.DoubleSide
-                });
-                const markerPlane = new THREE.Mesh(markerGeometry, markerMaterial);
-                markerPlane.rotation.x = -Math.PI / 2; // Lay flat
-                this.markerRoot.add(markerPlane);
-
-                // Add a small cube at center for reference
-                const cubeGeometry = new THREE.BoxGeometry(0.05, 0.05, 0.05); // Smaller cube
-                const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-                const centerCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-                centerCube.position.set(0, 0.025, 0); // Just above marker
-                this.markerRoot.add(centerCube);
-
-                // Add corner markers to see marker boundaries
-                const cornerGeometry = new THREE.SphereGeometry(0.02);
-                const cornerMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-                
-                const corners = [
-                    [-0.5, 0.01, -0.5], [0.5, 0.01, -0.5],
-                    [-0.5, 0.01, 0.5], [0.5, 0.01, 0.5]
-                ];
-                
-                corners.forEach((pos, i) => {
-                    const corner = new THREE.Mesh(cornerGeometry, cornerMaterial);
-                    corner.position.set(pos[0], pos[1], pos[2]);
-                    this.markerRoot.add(corner);
-                });
-
-                console.log('✅ Enhanced marker visuals added - look for green plane with blue corners');
+                console.log('🎯 Marker tracking configured');
+                document.getElementById('patternStatus').textContent = 'eterry-logo.patt';
             }
 
             async loadModel() {
-                console.log('📱 Starting mobile model loading...');
+                console.log('🤖 Starting model loading...');
                 
-                if (typeof THREE.DRACOLoader === 'undefined') {
-                    console.warn('⚠️ DRACOLoader not available, using standard models');
-                    document.getElementById('formatInfo').textContent = 'Standard Only';
-                } else {
-                    document.getElementById('formatInfo').textContent = 'Draco Ready';
-                }
-
-                // Try loading models with mobile-specific error handling
+                // Try loading each model option
                 for (let i = 0; i < this.modelOptions.length; i++) {
                     const option = this.modelOptions[i];
-                    console.log(`📱 Trying mobile model: ${option.name}`);
+                    console.log(`📦 Trying: ${option.name}`);
                     
                     try {
                         const success = await this.tryLoadGLTF(option);
                         if (success) {
-                            this.updateStatus(`Mobile loaded: ${option.name}`, 'success');
+                            this.updateStatus(`Loaded: ${option.name}`, 'success');
+                            document.getElementById('modelType').textContent = option.name;
                             return;
                         }
                     } catch (error) {
-                        console.warn(`⚠️ Mobile loading failed ${option.name}:`, error.message);
+                        console.warn(`⚠️ Failed to load ${option.name}:`, error.message);
                     }
                 }
 
-                // If all fails, create a simple test model
-                this.createMobileTestModel();
+                // If all fail, create test model
+                this.createTestModel();
             }
 
             async tryLoadGLTF(modelOption) {
                 return new Promise((resolve, reject) => {
+                    if (typeof THREE.GLTFLoader === 'undefined') {
+                        reject(new Error('GLTFLoader not available'));
+                        return;
+                    }
+
                     const loader = new THREE.GLTFLoader();
 
-                    // Setup Draco for mobile if available and needed
+                    // Setup Draco if needed
                     if (modelOption.compressed && typeof THREE.DRACOLoader !== 'undefined') {
                         const dracoLoader = new THREE.DRACOLoader();
                         dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-                        dracoLoader.setDecoderConfig({ type: 'js' });
-                        dracoLoader.setWorkerLimit(2); // Limit workers for mobile
                         loader.setDRACOLoader(dracoLoader);
-                        
-                        document.getElementById('compressionInfo').textContent = 'Mobile Draco';
-                    } else {
-                        document.getElementById('compressionInfo').textContent = 'Standard';
                     }
-
-                    const startTime = Date.now();
 
                     loader.load(
                         modelOption.path,
                         (gltf) => {
-                            const loadTime = Date.now() - startTime;
-                            console.log(`✅ Mobile model loaded in ${loadTime}ms`);
-                            
-                            this.processLoadedModel(gltf, modelOption);
+                            console.log('✅ GLTF model loaded successfully');
+                            this.handleModelLoaded(gltf.scene);
                             resolve(true);
                         },
                         (progress) => {
                             if (progress.lengthComputable) {
                                 const percent = Math.round((progress.loaded / progress.total) * 100);
-                                const loaded = Math.round(progress.loaded / 1024);
-                                const total = Math.round(progress.total / 1024);
-                                this.updateProgress(
-                                    50 + (percent * 0.4), 
-                                    `Mobile loading: ${percent}% (${loaded}KB/${total}KB)`
-                                );
+                                this.updateProgress(50 + (percent * 0.4), `Loading model: ${percent}%`);
                             }
                         },
                         (error) => {
-                            console.error(`❌ Mobile loading failed:`, error);
+                            console.error('❌ GLTF loading failed:', error);
                             reject(error);
                         }
                     );
                 });
             }
 
-            createMobileTestModel() {
-                console.log('🎨 Creating mobile test model with orientation fix...');
-                
-                // Simple test model
-                const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-                const material = new THREE.MeshLambertMaterial({ 
-                    color: 0x4CAF50,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                
-                const cube = new THREE.Mesh(geometry, material);
-                
-                // Apply same orientation fix as main model
-                cube.position.set(0, 0, 0.5); // Move forward
-                cube.rotation.set(0, Math.PI, 0); // 180° Y rotation
-                cube.scale.set(1, 1, 1);
-                
-                // Add directly to marker
-                this.markerRoot.add(cube);
-                this.currentModel = cube;
-                
-                // Animation to help see orientation
-                const animate = () => {
-                    if (cube) {
-                        cube.rotation.x += 0.01; // Rotate to show all sides
-                        cube.rotation.z += 0.02;
-                    }
-                };
-                
-                this.stats = { meshes: 1, materials: 1, textures: 0, vertices: 8 };
-                this.updateDebugDisplay();
-                this.startAnimation(animate);
-                
-                this.updateStatus('Test model ready - fixed orientation', 'success');
-                console.log('✅ Test model created with orientation fix (Y=180°, Z=+0.5)');
-            }
+            handleModelLoaded(model) {
+                console.log('🎉 Processing loaded model...');
 
-            processLoadedModel(gltf, modelOption) {
-                console.log('📱 Processing mobile model...');
-
+                // Remove any existing model
                 if (this.currentModel) {
                     this.markerRoot.remove(this.currentModel);
                 }
 
-                this.currentModel = gltf.scene;
-                this.resetStats();
+                this.currentModel = model;
 
-                // Mobile-optimized model processing
-                this.optimizeForMobile(gltf.scene);
-                this.analyzeModel(gltf.scene);
+                // Count meshes for debug
+                let meshCount = 0;
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        meshCount++;
+                        // Ensure material compatibility
+                        if (child.material) {
+                            child.material.side = THREE.DoubleSide;
+                            child.material.needsUpdate = true;
+                        }
+                    }
+                });
 
-                // Simple positioning like original working code
-                this.positionModelOnMarker(this.currentModel);
-
-                // Add to marker (like original: markerRoot1.add(mesh0))
-                this.markerRoot.add(this.currentModel);
-                this.updateDebugDisplay();
-                this.startAnimation();
-
-                console.log(`✅ Mobile model added to marker: ${this.stats.meshes} meshes`);
-                console.log(`📍 Simple position: x=${this.currentModel.position.x}, y=${this.currentModel.position.y}, z=${this.currentModel.position.z}`);
-                console.log(`📏 Scale: x=${this.currentModel.scale.x}, y=${this.currentModel.scale.y}, z=${this.currentModel.scale.z}`);
-            }
-
-            positionModelOnMarker(model) {
-                console.log('🔧 Fixing model orientation for AR...');
-                
-                // Reset transforms first
+                // Position model - EXACTLY like working code
                 model.position.set(0, 0, 0);
                 model.rotation.set(0, 0, 0);
                 model.scale.set(1, 1, 1);
 
-                // Calculate bounds for scaling
-                const box = new THREE.Box3().setFromObject(model);
-                const size = box.getSize(new THREE.Vector3());
-                
-                console.log('📦 Model size:', {
-                    x: size.x.toFixed(3), 
-                    y: size.y.toFixed(3), 
-                    z: size.z.toFixed(3)
-                });
+                // Add to marker
+                this.markerRoot.add(model);
 
-                // Scale if too large
-                const maxDimension = Math.max(size.x, size.y, size.z);
-                if (maxDimension > 2) {
-                    const scale = 1.5 / maxDimension;
-                    model.scale.set(scale, scale, scale);
-                    console.log(`📏 Model scaled by ${scale.toFixed(3)}`);
-                }
+                // Update debug info
+                document.getElementById('meshCount').textContent = meshCount;
+                document.getElementById('modelPosition').textContent = '(0, 0, 0)';
 
-                // CRITICAL: Fix orientation - model appearing behind marker
-                // Try different orientations to bring model to front
-                
-                // Option 1: Flip around Y axis (most common fix)
-                model.rotation.y = Math.PI; // 180 degrees
-                console.log('🔄 Applied 180° Y rotation to bring model to front');
-                
-                // Option 2: If model is upside down, also fix that
-                // model.rotation.x = Math.PI; // Uncomment if upside down
-                
-                // Option 3: Move model forward in Z if still behind
-                model.position.z = 0.5; // Move forward
-                console.log('⬆️ Moved model forward in Z axis');
-
-                console.log(`✅ Orientation fix applied:`);
-                console.log(`   Position: (${model.position.x}, ${model.position.y}, ${model.position.z})`);
-                console.log(`   Rotation: (${model.rotation.x.toFixed(2)}, ${model.rotation.y.toFixed(2)}, ${model.rotation.z.toFixed(2)})`);
-                console.log(`   Scale: (${model.scale.x.toFixed(3)}, ${model.scale.y.toFixed(3)}, ${model.scale.z.toFixed(3)})`);
+                console.log(`🎯 Model added: ${meshCount} meshes`);
             }
 
-            optimizeForMobile(model) {
-                model.traverse((child) => {
-                    if (child.isMesh && child.material) {
-                        const materials = Array.isArray(child.material) ? child.material : [child.material];
-                        
-                        materials.forEach((material) => {
-                            // Mobile optimizations
-                            material.side = THREE.FrontSide; // Single-sided for performance
-                            material.transparent = false; // Avoid transparency if possible
-                            material.needsUpdate = true;
-                            
-                            // Optimize textures for mobile
-                            const textureSlots = ['map', 'normalMap'];
-                            textureSlots.forEach((slot) => {
-                                if (material[slot]) {
-                                    material[slot].generateMipmaps = false; // Skip mipmaps for mobile
-                                    material[slot].minFilter = THREE.LinearFilter;
-                                    material[slot].magFilter = THREE.LinearFilter;
-                                }
-                            });
-                        });
+            createTestModel() {
+                console.log('🎨 Creating test model...');
+                
+                const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const material = new THREE.MeshNormalMaterial();
+                const cube = new THREE.Mesh(geometry, material);
+                
+                // Simple positioning - like working code
+                cube.position.set(0, 0.25, 0);
+                cube.rotation.set(0, 0, 0);
+                cube.scale.set(1, 1, 1);
+                
+                this.markerRoot.add(cube);
+                this.currentModel = cube;
+                
+                // Animate the test cube
+                this.testAnimation = () => {
+                    if (cube) {
+                        cube.rotation.x += 0.01;
+                        cube.rotation.y += 0.02;
                     }
-                });
-            }
-
-            resetStats() {
-                this.stats = { meshes: 0, materials: 0, textures: 0, vertices: 0 };
-            }
-
-            analyzeModel(model) {
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        this.stats.meshes++;
-                        
-                        if (child.geometry && child.geometry.attributes.position) {
-                            this.stats.vertices += child.geometry.attributes.position.count;
-                        }
-
-                        if (child.material) {
-                            if (Array.isArray(child.material)) {
-                                this.stats.materials += child.material.length;
-                                child.material.forEach((mat) => this.countTextures(mat));
-                            } else {
-                                this.stats.materials++;
-                                this.countTextures(child.material);
-                            }
-                        }
-                    }
-                });
-            }
-
-            countTextures(material) {
-                const textureSlots = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'];
-                textureSlots.forEach((slot) => {
-                    if (material[slot]) {
-                        this.stats.textures++;
-                    }
-                });
-            }
-
-            updateDebugDisplay() {
-                document.getElementById('meshCount').textContent = this.stats.meshes;
-                document.getElementById('materialCount').textContent = this.stats.materials;
-                document.getElementById('textureCount').textContent = this.stats.textures;
+                };
                 
-                // Update pattern status
-                document.getElementById('patternStatus').textContent = 'eterry-logo.patt';
-                document.getElementById('cameraParamsStatus').textContent = 'Defaults';
+                document.getElementById('modelType').textContent = 'Test Cube';
+                document.getElementById('meshCount').textContent = '1';
+                this.updateStatus('Test model created', 'warning');
             }
 
-            startAnimation(customAnimation = null) {
+            startAnimation() {
                 const animate = () => {
                     requestAnimationFrame(animate);
                     
-                    // Custom animation for test models
-                    if (customAnimation) {
-                        customAnimation();
-                    }
-                    
-                    // Update AR tracking
+                    // Update AR - EXACTLY like working code
                     if (this.arToolkitSource && this.arToolkitSource.ready !== false) {
                         this.arToolkitContext.update(this.arToolkitSource.domElement);
                         
-                        // Update tracking status with more detail
-                        if (this.markerRoot.visible) {
-                            document.getElementById('trackingStatus').textContent = 'Active ✓';
-                            
-                            // Update model position in debug
-                            if (this.currentModel) {
-                                const modelY = this.currentModel.position.y.toFixed(2);
-                                document.getElementById('modelPosition').textContent = `${modelY}`;
-                            }
-                            
-                            // Log marker position for debugging (less frequently)
-                            if (Math.random() < 0.005) { // 0.5% chance per frame
-                                const worldPos = new THREE.Vector3();
-                                this.markerRoot.getWorldPosition(worldPos);
-                                console.log(`🎯 Marker at: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`);
-                                
-                                if (this.currentModel) {
-                                    const modelWorld = new THREE.Vector3();
-                                    this.currentModel.getWorldPosition(modelWorld);
-                                    console.log(`📦 Model at: (${modelWorld.x.toFixed(2)}, ${modelWorld.y.toFixed(2)}, ${modelWorld.z.toFixed(2)})`);
-                                }
-                            }
-                        } else {
-                            document.getElementById('trackingStatus').textContent = 'Searching...';
-                            document.getElementById('modelPosition').textContent = 'N/A';
-                        }
+                        // Update debug info
+                        const markerVisible = this.markerRoot.visible;
+                        document.getElementById('markerVisible').textContent = markerVisible ? 'Yes' : 'No';
+                        document.getElementById('trackingStatus').textContent = markerVisible ? 'Active ✓' : 'Searching...';
+                    }
+                    
+                    // Run test animation if exists
+                    if (this.testAnimation) {
+                        this.testAnimation();
                     }
                     
                     // Render
@@ -1261,33 +625,31 @@ testPatternFile() {
                 };
                 
                 animate();
-                console.log('🎬 Mobile animation loop started');
+                console.log('🎬 Animation loop started');
             }
 
+            // Resize handling - EXACTLY like working code
             onResize() {
-                if (this.arToolkitSource) {
-                    try {
-                        this.arToolkitSource.onResizeElement();
-                        this.arToolkitSource.copyElementSizeTo(this.renderer.domElement);
-                        
-                        if (this.arToolkitContext && this.arToolkitContext.arController) {
-                            this.arToolkitSource.copyElementSizeTo(this.arToolkitContext.arController.canvas);
-                        }
-                        
-                        console.log('📱 AR resize completed successfully');
-                    } catch (error) {
-                        console.warn('⚠️ Mobile resize warning (usually harmless):', error);
+                if (this.arToolkitSource && this.arToolkitSource.ready) {
+                    this.arToolkitSource.onResize();
+                    this.arToolkitSource.copySizeTo(this.renderer.domElement);
+                    
+                    if (this.arToolkitContext.arController !== null) {
+                        this.arToolkitSource.copySizeTo(this.arToolkitContext.arController.canvas);
                     }
                 }
             }
 
             onWindowResize() {
-                // Mobile-specific resize handling with delay
-                setTimeout(() => {
-                    this.renderer.setSize(window.innerWidth, window.innerHeight);
-                    this.onResize();
-                    console.log('📱 Mobile window resized to:', window.innerWidth, 'x', window.innerHeight);
-                }, 200); // Longer delay for mobile
+                this.onResize();
+            }
+
+            updateCameraInfo() {
+                const video = this.arToolkitSource.domElement;
+                if (video && video.videoWidth && video.videoHeight) {
+                    const resolution = `${video.videoWidth}x${video.videoHeight}`;
+                    document.getElementById('cameraInfo').textContent = resolution;
+                }
             }
 
             updateStatus(text, type = 'info') {
@@ -1300,7 +662,6 @@ testPatternFile() {
                     statusBar.classList.add(`status-${type}`);
                     statusBar.style.display = 'block';
                     
-                    // Auto-hide success messages on mobile
                     if (type === 'success') {
                         setTimeout(() => {
                             statusBar.style.display = 'none';
@@ -1308,23 +669,18 @@ testPatternFile() {
                     }
                 }
                 
-                console.log(`📱 Mobile Status: ${text}`);
+                console.log(`📊 Status: ${text}`);
             }
 
             showError(title, message) {
                 this.updateStatus(`Error: ${title}`, 'error');
-                console.error(`❌ Mobile ${title}: ${message}`);
+                console.error(`❌ ${title}: ${message}`);
                 
                 const loadingText = document.getElementById('loadingText');
                 if (loadingText) {
-                    loadingText.textContent = `Mobile Error: ${title}`;
+                    loadingText.textContent = `Error: ${message}`;
                     loadingText.style.color = '#ff6b6b';
                 }
-
-                // Show mobile-friendly error message
-                setTimeout(() => {
-                    alert(`Mobile AR Error: ${title}\n\n${message}\n\nTry:\n- Refresh the page\n- Check camera permissions\n- Use HTTPS\n- Try a different browser`);
-                }, 2000);
             }
 
             hideLoadingScreen() {
@@ -1339,108 +695,10 @@ testPatternFile() {
             }
         }
 
-        // Check if we're on mobile
-        function isMobile() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
-
-        // Check if HTTPS is being used
-        function isHTTPS() {
-            return location.protocol === 'https:' || location.hostname === 'localhost';
-        }
-
-        // Mobile-specific initialization
-        window.addEventListener('load', () => {
-            console.log('📱 Mobile AR page loaded');
-            
-            // Check mobile requirements
-            if (isMobile()) {
-                console.log('📱 Mobile device detected');
-                document.getElementById('loadingText').textContent = 'Mobile device detected...';
-            }
-            
-            if (!isHTTPS()) {
-                console.warn('⚠️ HTTPS required for mobile camera');
-                document.getElementById('loadingText').textContent = 'HTTPS required for camera access';
-                document.getElementById('loadingText').style.color = '#ff9800';
-                
-                setTimeout(() => {
-                    alert('HTTPS Required!\n\nCamera access requires HTTPS. Please use:\n- https:// instead of http://\n- Or test on localhost');
-                }, 2000);
-                return;
-            }
-            
-            // Auto-request camera permission on mobile
-            setTimeout(() => {
-                if (isMobile()) {
-                    document.getElementById('cameraPrompt').style.display = 'block';
-                    requestCameraPermission();
-                } else {
-                    // Desktop - start immediately
-                    new MobileETERRYAR();
-                }
-            }, 1000);
-        });
-
-        // Mobile gesture handling
-        let touchStartTime = 0;
-        document.addEventListener('touchstart', (e) => {
-            touchStartTime = Date.now();
-        });
-
-        document.addEventListener('touchend', (e) => {
-            const touchDuration = Date.now() - touchStartTime;
-            
-            // Long press to toggle debug (mobile-friendly)
-            if (touchDuration > 1000) {
-                toggleDebug();
-                e.preventDefault();
-            }
-        });
-
-        // Prevent mobile zoom
-        document.addEventListener('touchmove', (e) => {
-            if (e.scale !== 1) {
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        // Mobile error handling
+        // Error handling
         window.addEventListener('error', (e) => {
-            console.error('💥 Mobile JavaScript Error:', e.error);
+            console.error('💥 JavaScript Error:', e.error);
             document.getElementById('cameraStatus').textContent = 'JS Error';
-        });
-
-        window.addEventListener('unhandledrejection', (e) => {
-            console.error('💥 Mobile Promise Rejection:', e.reason);
-            document.getElementById('cameraStatus').textContent = 'Promise Error';
-        });
-
-        // Mobile-specific camera permission check
-        async function checkCameraSupport() {
-            try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                
-                console.log(`📱 Found ${videoDevices.length} camera(s)`);
-                
-                if (videoDevices.length === 0) {
-                    throw new Error('No cameras found on this device');
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('❌ Camera support check failed:', error);
-                return false;
-            }
-        }
-
-        // Mobile orientation handling
-        window.addEventListener('orientationchange', () => {
-            console.log('📱 Orientation changed');
-            setTimeout(() => {
-                location.reload(); // Simple solution for orientation changes
-            }, 1000);
         });
     </script>
 </body>

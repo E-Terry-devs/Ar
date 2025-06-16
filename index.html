@@ -142,39 +142,6 @@
             display: none;
         }
 
-        .debug-section {
-            margin-bottom: 12px;
-        }
-
-        .debug-header {
-            font-weight: bold;
-            color: #4CAF50;
-            font-size: 12px;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .debug-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 3px 0;
-            padding: 1px 0;
-        }
-
-        .debug-label {
-            color: #ccc;
-            flex: 1;
-        }
-
-        .debug-value {
-            color: #fff;
-            font-weight: 500;
-            text-align: right;
-            flex: 1;
-        }
-
         /* Progress bar */
         .progress-container {
             width: 100%;
@@ -205,6 +172,7 @@
             border-radius: 20px;
             font-size: 12px;
             z-index: 99;
+            display: none; /* Hidden by default */
         }
 
         /* Prevent zoom on iOS */
@@ -242,66 +210,9 @@
         <span id="statusText">Ready</span>
     </div>
 
-    <button class="debug-toggle" onclick="toggleDebug()">🔧</button>
-
-    <div id="debugInfo">
-        <div class="debug-section">
-            <div class="debug-header">📱 Camera Status</div>
-            <div class="debug-row">
-                <span class="debug-label">Status:</span>
-                <span class="debug-value" id="cameraStatus">Starting...</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Resolution:</span>
-                <span class="debug-value" id="cameraInfo">Detecting...</span>
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">📊 Model Info</div>
-            <div class="debug-row">
-                <span class="debug-label">Type:</span>
-                <span class="debug-value" id="modelType">N/A</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Meshes:</span>
-                <span class="debug-value" id="meshCount">0</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Position:</span>
-                <span class="debug-value" id="modelPosition">(0, 0, 0)</span>
-            </div>
-        </div>
-
-        <div class="debug-section">
-            <div class="debug-header">🎯 AR Tracking</div>
-            <div class="debug-row">
-                <span class="debug-label">Pattern:</span>
-                <span class="debug-value" id="patternStatus">eterry-logo.patt</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Tracking:</span>
-                <span class="debug-value" id="trackingStatus">Inactive</span>
-            </div>
-            <div class="debug-row">
-                <span class="debug-label">Marker Visible:</span>
-                <span class="debug-value" id="markerVisible">No</span>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Global debug toggle
-        let debugVisible = false;
-        function toggleDebug() {
-            const debug = document.getElementById('debugInfo');
-            debugVisible = !debugVisible;
-            debug.style.display = debugVisible ? 'block' : 'none';
-        }
-
         // Wait for all scripts to load
         window.addEventListener('load', function() {
-            console.log('🚀 Starting Mobile E-TERRY AR (Fixed Version)');
             setTimeout(initializeApp, 500);
         });
 
@@ -347,8 +258,6 @@
 
             async init() {
                 try {
-                    console.log('📱 Initializing Mobile E-TERRY AR');
-                    
                     this.updateProgress(10, 'Setting up 3D scene...');
                     this.setupScene();
                     
@@ -365,7 +274,6 @@
                     setTimeout(() => this.hideLoadingScreen(), 1000);
 
                 } catch (error) {
-                    console.error('❌ Initialization failed:', error);
                     this.showError('Initialization Failed', error.message);
                 }
             }
@@ -405,8 +313,6 @@
 
                 // Handle window resize
                 window.addEventListener('resize', () => this.onWindowResize());
-                
-                console.log('✅ Scene setup complete');
             }
 
             async setupAR() {
@@ -417,7 +323,6 @@
                     });
 
                     this.arToolkitSource.init(() => {
-                        console.log('📷 AR camera ready');
                         document.getElementById('cameraStatus').textContent = 'Active';
                         this.updateCameraInfo();
                         // Don't call onResize here - wait for context to be ready
@@ -432,14 +337,12 @@
                             this.camera.projectionMatrix.copy(
                                 this.arToolkitContext.getProjectionMatrix()
                             );
-                            console.log('🎯 AR tracking ready');
                             // NOW it's safe to call onResize
                             this.onResize();
                             this.setupMarker();
                             resolve();
                         });
                     }, (error) => {
-                        console.error('❌ Camera initialization failed:', error);
                         document.getElementById('cameraStatus').textContent = 'Failed';
                         reject(error);
                     });
@@ -472,17 +375,13 @@
                 testMesh.rotation.x = -Math.PI/2;
                 this.markerRoot.add(testMesh);
 
-                console.log('🎯 Marker tracking configured');
                 document.getElementById('patternStatus').textContent = 'eterry-logo.patt';
             }
 
             async loadModel() {
-                console.log('🤖 Starting model loading...');
-                
                 // Try loading each model option
                 for (let i = 0; i < this.modelOptions.length; i++) {
                     const option = this.modelOptions[i];
-                    console.log(`📦 Trying: ${option.name}`);
                     
                     try {
                         const success = await this.tryLoadGLTF(option);
@@ -492,7 +391,7 @@
                             return;
                         }
                     } catch (error) {
-                        console.warn(`⚠️ Failed to load ${option.name}:`, error.message);
+                        // Continue to next model
                     }
                 }
 
@@ -519,7 +418,6 @@
                     loader.load(
                         modelOption.path,
                         (gltf) => {
-                            console.log('✅ GLTF model loaded successfully');
                             this.handleModelLoaded(gltf.scene);
                             resolve(true);
                         },
@@ -530,7 +428,6 @@
                             }
                         },
                         (error) => {
-                            console.error('❌ GLTF loading failed:', error);
                             reject(error);
                         }
                     );
@@ -538,8 +435,6 @@
             }
 
             handleModelLoaded(model) {
-                console.log('🎉 Processing loaded model...');
-
                 // Remove any existing model
                 if (this.currentModel) {
                     this.markerRoot.remove(this.currentModel);
@@ -571,13 +466,9 @@
                 // Update debug info
                 document.getElementById('meshCount').textContent = meshCount;
                 document.getElementById('modelPosition').textContent = '(0, 0, 0)';
-
-                console.log(`🎯 Model added: ${meshCount} meshes`);
             }
 
             createTestModel() {
-                console.log('🎨 Creating test model...');
-                
                 const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
                 const material = new THREE.MeshNormalMaterial();
                 const cube = new THREE.Mesh(geometry, material);
@@ -627,7 +518,6 @@
                 };
                 
                 animate();
-                console.log('🎬 Animation loop started');
             }
 
             // Resize handling - EXACTLY like working code
@@ -670,13 +560,10 @@
                         }, 3000);
                     }
                 }
-                
-                console.log(`📊 Status: ${text}`);
             }
 
             showError(title, message) {
                 this.updateStatus(`Error: ${title}`, 'error');
-                console.error(`❌ ${title}: ${message}`);
                 
                 const loadingText = document.getElementById('loadingText');
                 if (loadingText) {
@@ -699,7 +586,6 @@
 
         // Error handling
         window.addEventListener('error', (e) => {
-            console.error('💥 JavaScript Error:', e.error);
             document.getElementById('cameraStatus').textContent = 'JS Error';
         });
     </script>

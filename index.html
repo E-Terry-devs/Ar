@@ -383,24 +383,37 @@
         </div>
 
         <div class="debug-section">
+            <div class="debug-header">🔧 Pattern & Camera Files</div>
+            <div class="debug-row">
+                <span class="debug-label">Pattern:</span>
+                <span class="debug-value" id="patternStatus">Testing...</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Camera Params:</span>
+                <span class="debug-value" id="cameraParamsStatus">Default</span>
+            </div>
+        </div>
+
+        <div class="debug-section">
             <div class="debug-header">👁️ Troubleshooting Alignment</div>
             <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
                 If visuals appear away from marker:<br>
-                • Check marker pattern file<br>
+                • <strong>Try standard Hiro pattern</strong><br>
+                • Check data/eterry-logo.patt exists<br>
                 • Ensure good lighting<br>
                 • Keep marker flat & steady<br>
-                • Try different distances<br>
                 • Look for numbered corners (1-4)
             </div>
         </div>
 
         <div class="debug-section">
-            <div class="debug-header">📋 Quick Fixes</div>
+            <div class="debug-header">📋 Quick Test</div>
             <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
-                • Refresh page if tracking is off<br>
-                • Try portrait/landscape mode<br>
-                • Move closer/further from marker<br>
-                • Ensure marker has black border
+                <strong>Download Hiro pattern:</strong><br>
+                github.com/AR-js-org/AR.js/<br>
+                examples/marker-based/<br>
+                📄 Save as data/hiro.patt<br>
+                🖼️ Print the Hiro marker image
             </div>
         </div>
     </div>
@@ -607,9 +620,11 @@
                             this.updateCameraInfo();
                             this.onResize();
                             
-                            // Mobile-optimized AR context with better tracking
+                            // Try without camera_para.dat first (use defaults)
+                            console.log('🔧 Testing without camera_para.dat file...');
                             this.arToolkitContext = new THREEx.ArToolkitContext({
-                                cameraParametersUrl: 'data/camera_para.dat',
+                                // Try without custom camera parameters first
+                                // cameraParametersUrl: 'data/camera_para.dat',
                                 detectionMode: 'mono',
                                 // More aggressive mobile settings for better tracking
                                 maxDetectionRate: 60,
@@ -626,9 +641,37 @@
                                 this.camera.projectionMatrix.copy(
                                     this.arToolkitContext.getProjectionMatrix()
                                 );
-                                console.log('🎯 Mobile AR context ready');
+                                console.log('🎯 Mobile AR context ready (using default camera params)');
                                 this.setupMarker();
                                 resolve();
+                            }, (error) => {
+                                console.error('❌ AR context failed:', error);
+                                console.log('🔄 Trying with camera_para.dat...');
+                                
+                                // Fallback: try with camera_para.dat
+                                this.arToolkitContext = new THREEx.ArToolkitContext({
+                                    cameraParametersUrl: 'data/camera_para.dat',
+                                    detectionMode: 'mono',
+                                    maxDetectionRate: 60,
+                                    canvasWidth: 480,
+                                    canvasHeight: 360,
+                                    debug: false,
+                                    labelingMode: 'black_region',
+                                    matrixCodeType: '3x3',
+                                    patternRatio: 0.5
+                                });
+
+                                this.arToolkitContext.init(() => {
+                                    this.camera.projectionMatrix.copy(
+                                        this.arToolkitContext.getProjectionMatrix()
+                                    );
+                                    console.log('🎯 Mobile AR context ready (using camera_para.dat)');
+                                    this.setupMarker();
+                                    resolve();
+                                }, (finalError) => {
+                                    console.error('❌ Both attempts failed:', finalError);
+                                    reject(finalError);
+                                });
                             });
                         },
                         (error) => {
@@ -681,28 +724,60 @@
                 this.markerRoot = new THREE.Group();
                 this.scene.add(this.markerRoot);
 
-                // Create marker controls with better tracking settings
-                this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
-                    type: 'pattern',
-                    patternUrl: 'data/eterry-logo.patt',
-                    // Try different matrix modes for better alignment
-                    changeMatrixMode: 'cameraTransformMatrix',
-                    // More aggressive smoothing for mobile
-                    smooth: true,
-                    smoothCount: 3, // Reduced for more responsive tracking
-                    smoothTolerance: 0.02,
-                    smoothThreshold: 5,
-                    // Better pattern detection
-                    minConfidence: 0.6
-                });
+                // Test with multiple pattern options
+                const patternOptions = [
+                    'data/eterry-logo.patt',
+                    'data/hiro.patt',  // Standard test pattern
+                    'data/kanji.patt'  // Another standard pattern
+                ];
+
+                // Try the primary pattern first
+                console.log('🎯 Attempting to load pattern: data/eterry-logo.patt');
+                
+                try {
+                    // Create marker controls with better tracking settings
+                    this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
+                        type: 'pattern',
+                        patternUrl: 'data/eterry-logo.patt',
+                        // Try different matrix modes for better alignment
+                        changeMatrixMode: 'cameraTransformMatrix',
+                        // More aggressive smoothing for mobile
+                        smooth: true,
+                        smoothCount: 3, // Reduced for more responsive tracking
+                        smoothTolerance: 0.02,
+                        smoothThreshold: 5,
+                        // Better pattern detection
+                        minConfidence: 0.6
+                    });
+
+                    console.log('✅ Pattern loaded successfully: data/eterry-logo.patt');
+                } catch (error) {
+                    console.error('❌ Failed to load custom pattern:', error);
+                    console.log('🔄 Falling back to standard Hiro pattern...');
+                    
+                    // Fallback to standard pattern
+                    this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
+                        type: 'pattern',
+                        patternUrl: 'data/hiro.patt',
+                        changeMatrixMode: 'cameraTransformMatrix',
+                        smooth: true,
+                        smoothCount: 3,
+                        smoothTolerance: 0.02,
+                        smoothThreshold: 5,
+                        minConfidence: 0.6
+                    });
+                }
+
+                // Pattern file diagnostics
+                this.testPatternFile();
 
                 // Test different pattern files if available
-                console.log('🎯 Using pattern file: data/eterry-logo.patt');
-                console.log('💡 If tracking is off, try:');
-                console.log('   1. Check marker pattern is correct');
-                console.log('   2. Ensure good lighting');
-                console.log('   3. Hold camera steady');
-                console.log('   4. Keep marker flat and visible');
+                console.log('🎯 Current pattern: data/eterry-logo.patt');
+                console.log('💡 Pattern troubleshooting:');
+                console.log('   1. Make sure eterry-logo.patt exists in data/ folder');
+                console.log('   2. Try downloading standard hiro.patt for testing');
+                console.log('   3. Check if pattern file is corrupted');
+                console.log('   4. Ensure pattern was created properly');
 
                 // Add visual marker reference (helps with positioning)
                 this.addMarkerVisuals();
@@ -710,8 +785,49 @@
                 // Add calibration helper
                 this.addCalibrationHelper();
 
-                document.getElementById('markerStatus').textContent = 'Mobile Ready';
-                console.log('🎯 Mobile marker tracking configured with better settings');
+                document.getElementById('markerStatus').textContent = 'Pattern Ready';
+                console.log('🎯 Mobile marker tracking configured with pattern diagnostics');
+            }
+
+            testPatternFile() {
+                // Test if pattern file exists and is accessible
+                fetch('data/eterry-logo.patt')
+                    .then(response => {
+                        if (response.ok) {
+                            return response.text();
+                        } else {
+                            throw new Error(`Pattern file not found: ${response.status}`);
+                        }
+                    })
+                    .then(patternData => {
+                        console.log('✅ Pattern file accessible');
+                        console.log(`📄 Pattern file size: ${patternData.length} characters`);
+                        
+                        // Basic pattern validation
+                        const lines = patternData.split('\n').filter(line => line.trim());
+                        console.log(`📊 Pattern lines: ${lines.length} (should be ~580 for AR.js patterns)`);
+                        
+                        if (lines.length < 500) {
+                            console.warn('⚠️ Pattern file seems too short - might be corrupted');
+                        }
+                        
+                        // Check for common pattern markers
+                        if (patternData.includes('255 255 255') || patternData.includes('0 0 0')) {
+                            console.log('✅ Pattern contains expected RGB values');
+                        } else {
+                            console.warn('⚠️ Pattern format might be incorrect');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Pattern file test failed:', error);
+                        console.log('💡 Solutions:');
+                        console.log('   1. Check if data/eterry-logo.patt exists');
+                        console.log('   2. Download a working pattern from AR.js examples');
+                        console.log('   3. Use online pattern generator to recreate');
+                        console.log('   4. Try with standard hiro.patt for testing');
+                        
+                        document.getElementById('markerStatus').textContent = 'Pattern Missing!';
+                    });
             }
 
             addCalibrationHelper() {
@@ -1033,6 +1149,10 @@
                 document.getElementById('meshCount').textContent = this.stats.meshes;
                 document.getElementById('materialCount').textContent = this.stats.materials;
                 document.getElementById('textureCount').textContent = this.stats.textures;
+                
+                // Update pattern status
+                document.getElementById('patternStatus').textContent = 'eterry-logo.patt';
+                document.getElementById('cameraParamsStatus').textContent = 'Defaults';
             }
 
             startAnimation(customAnimation = null) {

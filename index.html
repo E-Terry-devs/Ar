@@ -806,12 +806,9 @@
             }
 
             createMobileTestModel() {
-                console.log('🎨 Creating mobile test model...');
+                console.log('🎨 Creating simple mobile test model...');
                 
-                // Create a test group to ensure proper positioning
-                const testGroup = new THREE.Group();
-                
-                // Simple colorful cube for mobile
+                // Simple test model like original code
                 const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
                 const material = new THREE.MeshLambertMaterial({ 
                     color: 0x4CAF50,
@@ -820,41 +817,29 @@
                 });
                 
                 const cube = new THREE.Mesh(geometry, material);
-                cube.position.set(0, 0.15, 0); // Half the height above marker
-                testGroup.add(cube);
                 
-                // Add text or additional visual elements
-                const textGeometry = new THREE.RingGeometry(0.1, 0.2, 8);
-                const textMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0xFF5722,
-                    side: THREE.DoubleSide
-                });
-                const ring = new THREE.Mesh(textGeometry, textMaterial);
-                ring.position.set(0, 0.4, 0);
-                ring.rotation.x = Math.PI / 2;
-                testGroup.add(ring);
+                // Simple positioning like original
+                cube.position.set(0, 0, 0);
+                cube.rotation.set(0, 0, 0);
+                cube.scale.set(1, 1, 1);
                 
-                // Position the test group properly on marker
-                this.positionModelOnMarker(testGroup);
-                
-                // Add to marker
-                this.markerRoot.add(testGroup);
-                this.currentModel = testGroup;
+                // Add directly to marker (like original: markerRoot1.add(mesh1))
+                this.markerRoot.add(cube);
+                this.currentModel = cube;
                 
                 // Simple animation
                 const animate = () => {
-                    if (testGroup) {
+                    if (cube) {
                         cube.rotation.y += 0.02;
-                        ring.rotation.z += 0.01;
                     }
                 };
                 
-                this.stats = { meshes: 2, materials: 2, textures: 0, vertices: 16 };
+                this.stats = { meshes: 1, materials: 1, textures: 0, vertices: 8 };
                 this.updateDebugDisplay();
                 this.startAnimation(animate);
                 
-                this.updateStatus('Mobile test model ready - positioned on marker', 'success');
-                console.log('✅ Test model created and positioned on marker');
+                this.updateStatus('Simple test model ready - positioned at (0,0,0)', 'success');
+                console.log('✅ Simple test model created at origin');
             }
 
             processLoadedModel(gltf, modelOption) {
@@ -871,75 +856,47 @@
                 this.optimizeForMobile(gltf.scene);
                 this.analyzeModel(gltf.scene);
 
-                // CRITICAL: Proper positioning for AR marker
+                // Simple positioning like original working code
                 this.positionModelOnMarker(this.currentModel);
 
-                // Add to marker (this is the key!)
+                // Add to marker (like original: markerRoot1.add(mesh0))
                 this.markerRoot.add(this.currentModel);
                 this.updateDebugDisplay();
                 this.startAnimation();
 
-                console.log(`✅ Mobile model positioned on marker: ${this.stats.meshes} meshes`);
-                console.log(`📍 Model position: x=${this.currentModel.position.x}, y=${this.currentModel.position.y}, z=${this.currentModel.position.z}`);
-                console.log(`📏 Model scale: x=${this.currentModel.scale.x}, y=${this.currentModel.scale.y}, z=${this.currentModel.scale.z}`);
+                console.log(`✅ Mobile model added to marker: ${this.stats.meshes} meshes`);
+                console.log(`📍 Simple position: x=${this.currentModel.position.x}, y=${this.currentModel.position.y}, z=${this.currentModel.position.z}`);
+                console.log(`📏 Scale: x=${this.currentModel.scale.x}, y=${this.currentModel.scale.y}, z=${this.currentModel.scale.z}`);
             }
 
             positionModelOnMarker(model) {
-                console.log('🔧 Positioning model on marker...');
+                console.log('🔧 Simple positioning like original code...');
                 
-                // Reset any existing transforms
+                // Simple positioning like your working code
                 model.position.set(0, 0, 0);
                 model.rotation.set(0, 0, 0);
                 model.scale.set(1, 1, 1);
 
-                // Calculate model bounds
+                // Calculate bounds just for scaling info
                 const box = new THREE.Box3().setFromObject(model);
                 const size = box.getSize(new THREE.Vector3());
-                const center = box.getCenter(new THREE.Vector3());
-
-                console.log('📦 Original model bounds:', {
-                    size: { x: size.x.toFixed(3), y: size.y.toFixed(3), z: size.z.toFixed(3) },
-                    center: { x: center.x.toFixed(3), y: center.y.toFixed(3), z: center.z.toFixed(3) },
-                    min: { x: box.min.x.toFixed(3), y: box.min.y.toFixed(3), z: box.min.z.toFixed(3) },
-                    max: { x: box.max.x.toFixed(3), y: box.max.y.toFixed(3), z: box.max.z.toFixed(3) }
+                
+                console.log('📦 Model size:', {
+                    x: size.x.toFixed(3), 
+                    y: size.y.toFixed(3), 
+                    z: size.z.toFixed(3)
                 });
 
-                // Scale first to fit marker area
+                // Optional: Scale down if too large (like your original scale)
                 const maxDimension = Math.max(size.x, size.y, size.z);
-                let targetScale = 1;
-                
-                if (maxDimension > 0.8) { // If larger than 80% of marker
-                    targetScale = 0.8 / maxDimension;
-                    model.scale.setScalar(targetScale);
-                    console.log(`📏 Model scaled by ${targetScale.toFixed(3)} to fit marker`);
-                    
-                    // Recalculate bounds after scaling
-                    box.setFromObject(model);
-                    size.copy(box.getSize(new THREE.Vector3()));
-                    center.copy(box.getCenter(new THREE.Vector3()));
+                if (maxDimension > 2) { // If larger than 2 units
+                    const scale = 1.5 / maxDimension; // Scale to fit in 1.5 units
+                    model.scale.set(scale, scale, scale);
+                    console.log(`📏 Model scaled by ${scale.toFixed(3)}`);
                 }
 
-                // Center the model horizontally (X and Z)
-                model.position.x = -center.x;
-                model.position.z = -center.z;
-
-                // Position model so its bottom sits on the marker (Y = 0)
-                // Instead of centering vertically, place bottom of model at marker level
-                model.position.y = -box.min.y; // This moves the model up so its bottom is at y=0
-
-                console.log('🔧 Model positioning applied:');
-                console.log(`   Center offset: (${-center.x.toFixed(3)}, ${(-box.min.y).toFixed(3)}, ${-center.z.toFixed(3)})`);
-                console.log(`   Final position: (${model.position.x.toFixed(3)}, ${model.position.y.toFixed(3)}, ${model.position.z.toFixed(3)})`);
-                console.log(`   Final scale: ${model.scale.x.toFixed(3)}`);
-                
-                // Verify final bounds
-                const finalBox = new THREE.Box3().setFromObject(model);
-                console.log(`   Final Y range: ${finalBox.min.y.toFixed(3)} to ${finalBox.max.y.toFixed(3)}`);
-                
-                // Optional: Add a small offset to lift model slightly above marker
-                model.position.y += 0.01; // 1cm above marker surface
-                
-                console.log(`✅ Model positioned: bottom at marker level, centered horizontally`);
+                console.log(`✅ Simple positioning applied: (${model.position.x}, ${model.position.y}, ${model.position.z})`);
+                console.log(`📏 Final scale: (${model.scale.x.toFixed(3)}, ${model.scale.y.toFixed(3)}, ${model.scale.z.toFixed(3)})`);
             }
 
             optimizeForMobile(model) {

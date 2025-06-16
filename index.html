@@ -11,8 +11,7 @@
     <!-- Modern Three.js from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
-    <!-- AR.js - Mobile optimized version -->
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <!-- AR.js for Three.js only (not A-Frame) -->
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
     
     <!-- Modern loaders -->
@@ -323,7 +322,6 @@
                     });
 
                     this.arToolkitSource.init(() => {
-                        document.getElementById('cameraStatus').textContent = 'Active';
                         this.updateCameraInfo();
                         // Don't call onResize here - wait for context to be ready
                         
@@ -343,7 +341,6 @@
                             resolve();
                         });
                     }, (error) => {
-                        document.getElementById('cameraStatus').textContent = 'Failed';
                         reject(error);
                     });
                 });
@@ -374,8 +371,6 @@
                 const testMesh = new THREE.Mesh(geometry, material);
                 testMesh.rotation.x = -Math.PI/2;
                 this.markerRoot.add(testMesh);
-
-                document.getElementById('patternStatus').textContent = 'eterry-logo.patt';
             }
 
             async loadModel() {
@@ -387,7 +382,6 @@
                         const success = await this.tryLoadGLTF(option);
                         if (success) {
                             this.updateStatus(`Loaded: ${option.name}`, 'success');
-                            document.getElementById('modelType').textContent = option.name;
                             return;
                         }
                     } catch (error) {
@@ -462,10 +456,6 @@
 
                 // Add to marker
                 this.markerRoot.add(model);
-
-                // Update debug info
-                document.getElementById('meshCount').textContent = meshCount;
-                document.getElementById('modelPosition').textContent = '(0, 0, 0)';
             }
 
             createTestModel() {
@@ -489,8 +479,6 @@
                     }
                 };
                 
-                document.getElementById('modelType').textContent = 'Test Cube';
-                document.getElementById('meshCount').textContent = '1';
                 this.updateStatus('Test model created', 'warning');
             }
 
@@ -501,11 +489,6 @@
                     // Update AR - EXACTLY like working code
                     if (this.arToolkitSource && this.arToolkitSource.ready !== false) {
                         this.arToolkitContext.update(this.arToolkitSource.domElement);
-                        
-                        // Update debug info
-                        const markerVisible = this.markerRoot.visible;
-                        document.getElementById('markerVisible').textContent = markerVisible ? 'Yes' : 'No';
-                        document.getElementById('trackingStatus').textContent = markerVisible ? 'Active ✓' : 'Searching...';
                     }
                     
                     // Run test animation if exists
@@ -537,10 +520,10 @@
             }
 
             updateCameraInfo() {
+                // Camera info method kept but not updating UI
                 const video = this.arToolkitSource.domElement;
                 if (video && video.videoWidth && video.videoHeight) {
-                    const resolution = `${video.videoWidth}x${video.videoHeight}`;
-                    document.getElementById('cameraInfo').textContent = resolution;
+                    // Just for internal use if needed
                 }
             }
 
@@ -586,7 +569,7 @@
 
         // Error handling
         window.addEventListener('error', (e) => {
-            document.getElementById('cameraStatus').textContent = 'JS Error';
+            // Silent error handling
         });
     </script>
 </body>

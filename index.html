@@ -383,12 +383,24 @@
         </div>
 
         <div class="debug-section">
-            <div class="debug-header">👁️ What to Look For</div>
+            <div class="debug-header">👁️ Troubleshooting Alignment</div>
             <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
-                • Green plane = marker detected<br>
-                • Blue corners = marker boundaries<br>
-                • Red cube = marker center<br>
-                • Your model should appear above
+                If visuals appear away from marker:<br>
+                • Check marker pattern file<br>
+                • Ensure good lighting<br>
+                • Keep marker flat & steady<br>
+                • Try different distances<br>
+                • Look for numbered corners (1-4)
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-header">📋 Quick Fixes</div>
+            <div style="color: #ccc; font-size: 10px; line-height: 1.3; margin-top: 5px;">
+                • Refresh page if tracking is off<br>
+                • Try portrait/landscape mode<br>
+                • Move closer/further from marker<br>
+                • Ensure marker has black border
             </div>
         </div>
     </div>
@@ -579,9 +591,9 @@
                     // Mobile-optimized AR source
                     this.arToolkitSource = new THREEx.ArToolkitSource({
                         sourceType: 'webcam',
-                        // Mobile-friendly resolution
-                        sourceWidth: 640,
-                        sourceHeight: 480,
+                        // More conservative mobile resolution for better tracking
+                        sourceWidth: 480,
+                        sourceHeight: 360,
                         displayWidth: window.innerWidth,
                         displayHeight: window.innerHeight,
                         // Mobile camera constraints
@@ -595,17 +607,19 @@
                             this.updateCameraInfo();
                             this.onResize();
                             
-                            // Mobile-optimized AR context
+                            // Mobile-optimized AR context with better tracking
                             this.arToolkitContext = new THREEx.ArToolkitContext({
                                 cameraParametersUrl: 'data/camera_para.dat',
                                 detectionMode: 'mono',
-                                // Conservative mobile settings
-                                maxDetectionRate: 30, // Lower for mobile performance
-                                canvasWidth: 640,
-                                canvasHeight: 480,
-                                // Mobile optimization
+                                // More aggressive mobile settings for better tracking
+                                maxDetectionRate: 60,
+                                canvasWidth: 480,
+                                canvasHeight: 360,
                                 debug: false,
-                                labelingMode: 'black_region'
+                                labelingMode: 'black_region',
+                                // Better tracking parameters
+                                matrixCodeType: '3x3',
+                                patternRatio: 0.5
                             });
 
                             this.arToolkitContext.init(() => {
@@ -667,23 +681,79 @@
                 this.markerRoot = new THREE.Group();
                 this.scene.add(this.markerRoot);
 
-                // Create marker controls
+                // Create marker controls with better tracking settings
                 this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
                     type: 'pattern',
                     patternUrl: 'data/eterry-logo.patt',
+                    // Try different matrix modes for better alignment
                     changeMatrixMode: 'cameraTransformMatrix',
-                    // Mobile optimization
+                    // More aggressive smoothing for mobile
                     smooth: true,
-                    smoothCount: 5,
-                    smoothTolerance: 0.01,
-                    smoothThreshold: 2
+                    smoothCount: 3, // Reduced for more responsive tracking
+                    smoothTolerance: 0.02,
+                    smoothThreshold: 5,
+                    // Better pattern detection
+                    minConfidence: 0.6
                 });
+
+                // Test different pattern files if available
+                console.log('🎯 Using pattern file: data/eterry-logo.patt');
+                console.log('💡 If tracking is off, try:');
+                console.log('   1. Check marker pattern is correct');
+                console.log('   2. Ensure good lighting');
+                console.log('   3. Hold camera steady');
+                console.log('   4. Keep marker flat and visible');
 
                 // Add visual marker reference (helps with positioning)
                 this.addMarkerVisuals();
 
+                // Add calibration helper
+                this.addCalibrationHelper();
+
                 document.getElementById('markerStatus').textContent = 'Mobile Ready';
-                console.log('🎯 Mobile marker tracking configured');
+                console.log('🎯 Mobile marker tracking configured with better settings');
+            }
+
+            addCalibrationHelper() {
+                // Add numbered corners to help identify marker orientation
+                const cornerLabels = ['1', '2', '3', '4'];
+                const cornerPositions = [
+                    [-0.4, 0.02, -0.4], // Top-left
+                    [0.4, 0.02, -0.4],  // Top-right  
+                    [0.4, 0.02, 0.4],   // Bottom-right
+                    [-0.4, 0.02, 0.4]   // Bottom-left
+                ];
+
+                cornerPositions.forEach((pos, i) => {
+                    // Create text geometry for corner numbers
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, 64, 64);
+                    ctx.fillStyle = 'black';
+                    ctx.font = 'bold 48px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(cornerLabels[i], 32, 45);
+                    
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.MeshBasicMaterial({ 
+                        map: texture,
+                        transparent: true,
+                        alphaTest: 0.1
+                    });
+                    
+                    const geometry = new THREE.PlaneGeometry(0.1, 0.1);
+                    const label = new THREE.Mesh(geometry, material);
+                    label.position.set(pos[0], pos[1], pos[2]);
+                    label.rotation.x = -Math.PI / 2;
+                    
+                    this.markerRoot.add(label);
+                });
+
+                console.log('🔢 Added corner calibration numbers (1-4)');
             }
 
             addMarkerVisuals() {
@@ -1023,6 +1093,8 @@
                         if (this.arToolkitContext && this.arToolkitContext.arController) {
                             this.arToolkitSource.copyElementSizeTo(this.arToolkitContext.arController.canvas);
                         }
+                        
+                        console.log('📱 AR resize completed successfully');
                     } catch (error) {
                         console.warn('⚠️ Mobile resize warning (usually harmless):', error);
                     }
@@ -1030,12 +1102,12 @@
             }
 
             onWindowResize() {
-                // Mobile-specific resize handling
+                // Mobile-specific resize handling with delay
                 setTimeout(() => {
                     this.renderer.setSize(window.innerWidth, window.innerHeight);
                     this.onResize();
-                    console.log('📱 Mobile window resized');
-                }, 100);
+                    console.log('📱 Mobile window resized to:', window.innerWidth, 'x', window.innerHeight);
+                }, 200); // Longer delay for mobile
             }
 
             updateStatus(text, type = 'info') {

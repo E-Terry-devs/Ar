@@ -2,23 +2,32 @@
 <head>
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 	<meta charset="utf-8">
-	<title>Augmented Reality E-TERRY - Complete Fixed Version</title>
-	
-	<!-- Prevent zoom on double tap -->
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-	
-	<!-- PWA support -->
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta name="mobile-web-app-capable" content="yes">
+	<title>Augmented Reality E-TERRY - CDN Draco Version</title>
 	
 	<!-- Include Three.js library -->
 	<script src='js/three.js'></script>
 	<script src='js/OBJLoader.js'></script>
 	<script src='js/MTLLoader.js'></script>
+	<script src='js/GLTFLoader.js'></script>
 	
-	<!-- GLB support with Draco compression - Try local files first, then CDN fallback -->
-	<script src="js/GLTFLoader.js" onerror="this.remove(); loadCDNScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js');"></script>
-	<script src="js/DRACOLoader.js" onerror="this.remove(); loadCDNScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/DRACOLoader.js');"></script>
+	<!-- Load official DRACOLoader from CDN as fallback -->
+	<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/DRACOLoader.js" 
+	        onerror="console.warn('CDN DRACOLoader failed, using local version')"></script>
+	
+	<!-- Fallback to local DRACOLoader if CDN fails -->
+	<script>
+		// Check if CDN DRACOLoader loaded successfully
+		window.addEventListener('load', function() {
+			if (typeof THREE.DRACOLoader === 'undefined') {
+				console.log('Loading local DRACOLoader...');
+				var script = document.createElement('script');
+				script.src = 'js/DRACOLoader.js';
+				document.head.appendChild(script);
+			} else {
+				console.log('Using CDN DRACOLoader');
+			}
+		});
+	</script>
 	
 	<!-- Include jsartookit -->
 	<script src="jsartoolkit5/artoolkit.min.js"></script>
@@ -55,17 +64,6 @@
 			text-align: center;
 		}
 		
-		#loadingScreen h1 {
-			margin: 20px 0;
-			font-size: 2em;
-			font-weight: 300;
-		}
-		
-		#loadingScreen p {
-			margin: 10px 0;
-			opacity: 0.8;
-		}
-		
 		.spinner {
 			border: 3px solid rgba(255,255,255,0.3);
 			border-radius: 50%;
@@ -81,7 +79,6 @@
 			100% { transform: rotate(360deg); }
 		}
 		
-		/* Status indicator */
 		#statusBar {
 			position: fixed;
 			top: 10px;
@@ -94,741 +91,396 @@
 			font-size: 12px;
 			z-index: 100;
 			display: none;
-			backdrop-filter: blur(10px);
 		}
 		
 		.status-success { background: rgba(0,150,0,0.8) !important; }
 		.status-warning { background: rgba(255,150,0,0.8) !important; }
 		.status-error { background: rgba(150,0,0,0.8) !important; }
-		
-		/* Debug panel (hidden by default) */
-		#debugPanel {
-			position: fixed;
-			bottom: 10px;
-			left: 10px;
-			background: rgba(0,0,0,0.8);
-			color: white;
-			padding: 10px;
-			border-radius: 5px;
-			font-size: 10px;
-			font-family: monospace;
-			max-width: 300px;
-			max-height: 200px;
-			overflow-y: auto;
-			display: none;
-			backdrop-filter: blur(10px);
-		}
-		
-		/* Control buttons */
-		#controls {
-			position: fixed;
-			bottom: 20px;
-			right: 20px;
-			z-index: 100;
-		}
-		
-		.control-btn {
-			display: block;
-			margin: 5px 0;
-			padding: 10px 15px;
-			background: rgba(255,255,255,0.9);
-			border: none;
-			border-radius: 25px;
-			font-size: 12px;
-			cursor: pointer;
-			backdrop-filter: blur(10px);
-			transition: all 0.3s ease;
-		}
-		
-		.control-btn:hover {
-			background: rgba(255,255,255,1);
-			transform: scale(1.05);
-		}
-		
-		/* Mobile optimizations */
-		@media (max-width: 768px) {
-			#statusBar {
-				font-size: 11px;
-				padding: 8px;
-			}
-			
-			#controls {
-				bottom: 10px;
-				right: 10px;
-			}
-			
-			.control-btn {
-				padding: 8px 12px;
-				font-size: 11px;
-			}
-		}
 	</style>
 </head>
 
 <body>
-	<!-- Loading Screen -->
 	<div id="loadingScreen">
 		<h1>E-TERRY AR</h1>
 		<div class="spinner"></div>
-		<p id="loadingText">Initializing AR system...</p>
-		<p id="loadingDetails">Please allow camera access</p>
+		<p id="loadingText">Initializing...</p>
 	</div>
 	
-	<!-- Status Bar -->
 	<div id="statusBar">
 		<span id="statusText">Ready</span>
 	</div>
-	
-	<!-- Debug Panel -->
-	<div id="debugPanel">
-		<div id="debugContent">Debug info will appear here</div>
-	</div>
-	
-	<!-- Control Buttons -->
-	<div id="controls">
-		<button class="control-btn" onclick="toggleDebug()">🔧 Debug</button>
-		<button class="control-btn" onclick="resetModel()">🔄 Reset</button>
-		<button class="control-btn" onclick="switchModel()">📦 Switch Model</button>
-	</div>
 
 <script>
-// CDN fallback function for missing local scripts
-function loadCDNScript(src) {
-	const script = document.createElement('script');
-	script.src = src;
-	script.onload = function() {
-		console.log('✅ Loaded from CDN:', src.split('/').pop());
-	};
-	script.onerror = function() {
-		console.error('❌ Failed to load from CDN:', src);
-	};
-	document.head.appendChild(script);
-}
+// Wait for all scripts to load before initializing
+window.addEventListener('load', function() {
+	// Small delay to ensure all scripts are ready
+	setTimeout(initializeApp, 500);
+});
 
-// Polyfill for navigator.mediaDevices.getUserMedia for older browsers
-if (navigator.mediaDevices === undefined) {
-	navigator.mediaDevices = {};
-}
-if (navigator.mediaDevices.getUserMedia === undefined) {
-	navigator.mediaDevices.getUserMedia = function(constraints) {
-		var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.getUserMedia;
-		if (!getUserMedia) {
-			return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
-		}
-		return new Promise(function(resolve, reject) {
-			getUserMedia.call(navigator, constraints, resolve, reject);
-		});
-	}
-}
-
-// Global variables
-var scene, camera, renderer, clock, deltaTime, totalTime;
-var arToolkitSource, arToolkitContext;
-var markerRoot1;
-var testMesh, currentModel;
-var debugMode = false;
-var deviceCapabilities;
-var modelIndex = 0;
-
-// Performance monitoring variables (FIXED: declared before use)
-var frameCount = 0;
-var lastFPSUpdate = performance.now();
-var currentFPS = 0;
-
-// Model loading options (in order of preference)
-var modelOptions = [
-	{
-		name: 'Compressed GLB',
-		path: 'models/ETERRY_compressed.glb',
-		type: 'glb',
-		compressed: true
-	},
-	{
-		name: 'Regular GLB',
-		path: 'models/ETERRY.glb',
-		type: 'glb',
-		compressed: false
-	},
-	{
-		name: 'OBJ+MTL',
-		path: 'models/ETERRY.obj',
-		type: 'obj',
-		compressed: false
-	}
-];
-
-// Check if all required libraries are loaded
-function checkLibraries() {
-	console.log('🔍 Checking required libraries...');
+function initializeApp() {
+	console.log('🚀 Initializing E-TERRY AR with reliable Draco support');
 	
-	const libraries = {
-		'THREE.js': typeof THREE !== 'undefined',
-		'GLTFLoader': typeof THREE !== 'undefined' && typeof THREE.GLTFLoader !== 'undefined',
-		'DRACOLoader': typeof THREE !== 'undefined' && typeof THREE.DRACOLoader !== 'undefined',
-		'OBJLoader': typeof THREE !== 'undefined' && typeof THREE.OBJLoader !== 'undefined',
-		'MTLLoader': typeof THREE !== 'undefined' && typeof THREE.MTLLoader !== 'undefined',
-		'ARToolkit': typeof THREEx !== 'undefined'
-	};
+	// Global variables
+	var scene, camera, renderer, clock;
+	var arToolkitSource, arToolkitContext;
+	var markerRoot1, currentModel;
 	
-	let allLoaded = true;
-	let missingLibraries = [];
-	
-	for (const [name, loaded] of Object.entries(libraries)) {
-		console.log(`${loaded ? '✅' : '❌'} ${name}: ${loaded ? 'Available' : 'Missing'}`);
-		if (!loaded) {
-			allLoaded = false;
-			missingLibraries.push(name);
-		}
-	}
-	
-	if (!allLoaded) {
-		console.error('❌ Missing libraries:', missingLibraries.join(', '));
-		updateLoadingText('Missing required libraries', `Missing: ${missingLibraries.join(', ')}`);
+	// Model options
+	var modelOptions = [
 		
-		// Try to load missing libraries from CDN
-		if (!libraries['GLTFLoader']) {
-			loadCDNScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js');
-		}
-		if (!libraries['DRACOLoader']) {
-			loadCDNScript('https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/DRACOLoader.js');
-		}
+		{
+			name: 'Compressed GLB (Draco)',
+			path: 'models/ETERRY_compressed.glb',
+			type: 'glb',
+			compressed: true
+		},
 		
-		// Retry after a delay
-		setTimeout(() => {
-			if (typeof THREE !== 'undefined' && typeof THREE.GLTFLoader !== 'undefined') {
-				console.log('✅ Libraries loaded from CDN, retrying initialization...');
-				initialize();
-			}
-		}, 2000);
-		
-		return false;
-	} else {
-		console.log('✅ All libraries loaded successfully');
-		return true;
-	}
-}
-
-// Initialize everything
-if (checkLibraries()) {
+	];
+	
+	// Initialize the application
 	initialize();
-	animate();
-} else {
-	// Will retry after CDN loading
-	console.log('⏳ Waiting for CDN libraries to load...');
-}
-
-function initialize() {
-	updateLoadingText('Detecting device capabilities...');
 	
-	// Detect device capabilities
-	deviceCapabilities = detectDeviceCapabilities();
-	logDebug('Device capabilities detected', deviceCapabilities);
-	
-	updateLoadingText('Setting up 3D scene...');
-	
-	// Setup Three.js scene
-	scene = new THREE.Scene();
-
-	let ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
-	scene.add(ambientLight);
-				
-	camera = new THREE.Camera();
-	scene.add(camera);
-
-	// Setup responsive renderer
-	renderer = new THREE.WebGLRenderer({
-		antialias: true,
-		alpha: true,
-		powerPreference: deviceCapabilities.isMobile ? 'low-power' : 'high-performance'
-	});
-	
-	renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.domElement.style.position = 'absolute';
-	renderer.domElement.style.top = '0px';
-	renderer.domElement.style.left = '0px';
-	document.body.appendChild(renderer.domElement);
-
-	clock = new THREE.Clock();
-	deltaTime = 0;
-	totalTime = 0;
-	
-	updateLoadingText('Configuring AR camera...');
-	
-	// Setup AR with responsive camera resolution
-	setupARToolkit();
-}
-
-function detectDeviceCapabilities() {
-	const capabilities = {
-		isDesktop: !('ontouchstart' in window),
-		isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-		isHighDPI: window.devicePixelRatio > 1.5,
-		screenWidth: window.screen.width,
-		screenHeight: window.screen.height,
-		windowWidth: window.innerWidth,
-		windowHeight: window.innerHeight,
-		ram: navigator.deviceMemory || 4, // GB, defaults to 4 if not available
-		cores: navigator.hardwareConcurrency || 4,
-		pixelRatio: window.devicePixelRatio || 1
-	};
-	
-	// Calculate optimal camera resolution
-	const maxDimension = Math.max(capabilities.screenWidth, capabilities.screenHeight);
-	
-	if (maxDimension >= 1920 && capabilities.ram >= 8) {
-		capabilities.optimalResolution = { width: 1280, height: 720 };
-		capabilities.quality = 'high';
-	} else if (maxDimension >= 1280 && capabilities.ram >= 6) {
-		capabilities.optimalResolution = { width: 960, height: 640 };
-		capabilities.quality = 'medium';
-	} else if (maxDimension >= 720 && capabilities.ram >= 4) {
-		capabilities.optimalResolution = { width: 640, height: 480 };
-		capabilities.quality = 'standard';
-	} else {
-		capabilities.optimalResolution = { width: 480, height: 360 };
-		capabilities.quality = 'low';
-	}
-	
-	// Determine if we should use Draco compression
-	capabilities.shouldUseDraco = capabilities.isMobile ? 
-		(capabilities.ram >= 6 && capabilities.cores >= 4) : true;
-	
-	console.log('📱 Device capabilities:', capabilities);
-	return capabilities;
-}
-
-function setupARToolkit() {
-	const resolution = deviceCapabilities.optimalResolution;
-	
-	console.log(`🎥 Using camera resolution: ${resolution.width}x${resolution.height} (${deviceCapabilities.quality} quality)`);
-	
-	arToolkitSource = new THREEx.ArToolkitSource({
-		sourceType: 'webcam',
-		sourceWidth: resolution.width,
-		sourceHeight: resolution.height,
-		displayWidth: window.innerWidth,
-		displayHeight: window.innerHeight
-	});
-
-	function onResize() {
-		console.log('📱 Resizing to:', window.innerWidth, 'x', window.innerHeight);
+	function initialize() {
+		updateLoadingText('Setting up 3D scene...');
 		
-		arToolkitSource.onResize();
-		arToolkitSource.copySizeTo(renderer.domElement);
+		// Setup Three.js scene
+		scene = new THREE.Scene();
+		camera = new THREE.Camera();
+		scene.add(camera);
 		
-		if (arToolkitContext.arController !== null) {
-			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
-		}
+		var ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
+		scene.add(ambientLight);
 		
+		// Setup renderer
+		renderer = new THREE.WebGLRenderer({
+			antialias: true,
+			alpha: true
+		});
+		
+		renderer.setClearColor(new THREE.Color('lightgrey'), 0);
 		renderer.setSize(window.innerWidth, window.innerHeight);
-		updateStatus(`Resolution: ${window.innerWidth}x${window.innerHeight}`);
-	}
-
-	arToolkitSource.init(function onReady() {
-		console.log('📷 AR camera initialized');
-		updateLoadingText('Camera ready, setting up tracking...');
-		onResize();
-	});
-	
-	// Handle resize and orientation changes
-	window.addEventListener('resize', onResize);
-	window.addEventListener('orientationchange', function() {
-		setTimeout(onResize, 100);
-	});
-	
-	// Setup AR context
-	arToolkitContext = new THREEx.ArToolkitContext({
-		cameraParametersUrl: 'data/camera_para.dat',
-		detectionMode: 'mono'
-	});
-	
-	arToolkitContext.init(function onCompleted() {
-		camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-		console.log('🎯 AR context initialized');
-		updateLoadingText('Loading 3D model...');
-		setupMarkerAndModel();
-	});
-}
-
-function setupMarkerAndModel() {
-	// Setup marker
-	markerRoot1 = new THREE.Group();
-	scene.add(markerRoot1);
-	
-	let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
-		type: 'pattern', 
-		patternUrl: "data/eterry-logo.patt",
-	});
-
-	// Create test geometry (blue plane)
-	let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
-	let material1 = new THREE.MeshBasicMaterial({ 
-		color: 0x0000ff, 
-		opacity: 0.5,
-		transparent: true
-	});
-	testMesh = new THREE.Mesh(geometry1, material1);
-	testMesh.rotation.x = -Math.PI/2;
-	markerRoot1.add(testMesh);
-	
-	// Load robot model
-	loadRobotModel();
-}
-
-function loadRobotModel() {
-	console.log('🤖 Starting robot model loading...');
-	updateLoadingText('Loading robot model...');
-	
-	// Try models in order of preference
-	tryLoadModel(0);
-}
-
-function tryLoadModel(index) {
-	if (index >= modelOptions.length) {
-		console.error('❌ All model loading options failed');
-		updateStatus('Model loading failed - using fallback geometry', 'error');
-		hideLoadingScreen();
-		return;
-	}
-	
-	const modelOption = modelOptions[index];
-	console.log(`📦 Trying ${modelOption.name}: ${modelOption.path}`);
-	updateLoadingText(`Loading ${modelOption.name}...`);
-	
-	if (modelOption.type === 'glb') {
-		loadGLBModel(modelOption, function(success) {
-			if (success) {
-				hideLoadingScreen();
-				updateStatus(`Loaded: ${modelOption.name}`, 'success');
-			} else {
-				console.warn(`⚠️ ${modelOption.name} failed, trying next option...`);
-				tryLoadModel(index + 1);
-			}
-		});
-	} else if (modelOption.type === 'obj') {
-		loadOBJModel(modelOption, function(success) {
-			if (success) {
-				hideLoadingScreen();
-				updateStatus(`Loaded: ${modelOption.name}`, 'success');
-			} else {
-				console.warn(`⚠️ ${modelOption.name} failed, trying next option...`);
-				tryLoadModel(index + 1);
-			}
-		});
-	}
-}
-
-function loadGLBModel(modelOption, callback) {
-	// Check if GLTFLoader is available
-	if (typeof THREE === 'undefined' || typeof THREE.GLTFLoader === 'undefined') {
-		console.error('❌ GLTFLoader not available');
-		callback(false);
-		return;
-	}
-	
-	const gltfLoader = new THREE.GLTFLoader();
-	
-	// FIXED: Better DRACOLoader setup with proper error handling
-	console.log('🔧 Checking Draco support...');
-	console.log('DRACOLoader available:', typeof THREE.DRACOLoader !== 'undefined');
-	
-	if (typeof THREE.DRACOLoader !== 'undefined') {
-		console.log('🗜️ Setting up Draco decoder...');
-		try {
-			const dracoLoader = new THREE.DRACOLoader();
-			
-			// Use reliable CDN path
-			dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-			gltfLoader.setDRACOLoader(dracoLoader);
-			console.log('✅ Draco decoder configured with CDN path');
-		} catch (error) {
-			console.error('❌ Failed to setup DRACOLoader:', error);
-		}
-	} else {
-		console.warn('⚠️ DRACOLoader not available - compressed models may fail');
+		renderer.domElement.style.position = 'absolute';
+		renderer.domElement.style.top = '0px';
+		renderer.domElement.style.left = '0px';
+		document.body.appendChild(renderer.domElement);
 		
-		// If no DRACOLoader and this is a compressed model, skip it
-		if (modelOption.compressed) {
-			console.log('❌ Skipping compressed model due to missing DRACOLoader');
+		clock = new THREE.Clock();
+		
+		updateLoadingText('Setting up AR...');
+		setupAR();
+	}
+	
+	function setupAR() {
+		// AR source
+		arToolkitSource = new THREEx.ArToolkitSource({
+			sourceType: 'webcam'
+		});
+		
+		arToolkitSource.init(function onReady() {
+			console.log('📷 AR camera ready');
+			updateLoadingText('Camera ready, configuring tracking...');
+			onResize();
+		});
+		
+		// Handle resize
+		function onResize() {
+			arToolkitSource.onResize();
+			arToolkitSource.copySizeTo(renderer.domElement);
+			
+			if (arToolkitContext.arController !== null) {
+				arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
+			}
+		}
+		
+		window.addEventListener('resize', onResize);
+		
+		// AR context
+		arToolkitContext = new THREEx.ArToolkitContext({
+			cameraParametersUrl: 'data/camera_para.dat',
+			detectionMode: 'mono'
+		});
+		
+		arToolkitContext.init(function onCompleted() {
+			camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+			console.log('🎯 AR tracking ready');
+			setupMarker();
+		});
+	}
+	
+	function setupMarker() {
+		updateLoadingText('Setting up marker tracking...');
+		
+		// Setup marker
+		markerRoot1 = new THREE.Group();
+		scene.add(markerRoot1);
+		
+		var markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
+			type: 'pattern', 
+			patternUrl: 'data/eterry-logo.patt'
+		});
+		
+		// Add test geometry
+		var geometry = new THREE.PlaneBufferGeometry(1, 1);
+		var material = new THREE.MeshBasicMaterial({ 
+			color: 0x0000ff, 
+			opacity: 0.5,
+			transparent: true
+		});
+		var testMesh = new THREE.Mesh(geometry, material);
+		testMesh.rotation.x = -Math.PI/2;
+		markerRoot1.add(testMesh);
+		
+		updateLoadingText('Loading 3D model...');
+		loadModel();
+	}
+	
+	function loadModel() {
+		console.log('🤖 Starting model loading process...');
+		
+		// Try each model option
+		tryLoadModel(0);
+	}
+	
+	function tryLoadModel(index) {
+		if (index >= modelOptions.length) {
+			console.error('❌ All model loading attempts failed');
+			updateStatus('Model loading failed', 'error');
+			hideLoadingScreen();
+			return;
+		}
+		
+		var modelOption = modelOptions[index];
+		console.log(`📦 Attempting to load: ${modelOption.name}`);
+		updateLoadingText(`Loading ${modelOption.name}...`);
+		
+		if (modelOption.type === 'glb') {
+			loadGLTFModel(modelOption, function(success) {
+				if (success) {
+					console.log(`✅ Successfully loaded: ${modelOption.name}`);
+					updateStatus(`Loaded: ${modelOption.name}`, 'success');
+					hideLoadingScreen();
+				} else {
+					console.warn(`⚠️ Failed to load: ${modelOption.name}`);
+					tryLoadModel(index + 1);
+				}
+			});
+		} else if (modelOption.type === 'obj') {
+			loadOBJModel(modelOption, function(success) {
+				if (success) {
+					console.log(`✅ Successfully loaded: ${modelOption.name}`);
+					updateStatus(`Loaded: ${modelOption.name}`, 'success');
+					hideLoadingScreen();
+				} else {
+					console.warn(`⚠️ Failed to load: ${modelOption.name}`);
+					tryLoadModel(index + 1);
+				}
+			});
+		}
+	}
+	
+	function loadGLTFModel(modelOption, callback) {
+		// Check if GLTFLoader is available
+		if (typeof THREE.GLTFLoader === 'undefined') {
+			console.error('❌ GLTFLoader not available');
 			callback(false);
 			return;
 		}
+		
+		var gltfLoader = new THREE.GLTFLoader();
+		
+		// Setup DRACOLoader if available and needed
+		if (modelOption.compressed && typeof THREE.DRACOLoader !== 'undefined') {
+			console.log('🗜️ Setting up Draco decoder for compressed model...');
+			
+			try {
+				var dracoLoader = new THREE.DRACOLoader();
+				
+				// Use multiple reliable decoder paths
+				var decoderPaths = [
+					'https://www.gstatic.com/draco/versioned/decoders/1.5.6/',
+					'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/libs/draco/gltf/',
+					'https://unpkg.com/three@0.152.2/examples/js/libs/draco/gltf/'
+				];
+				
+				// Try the most reliable path first
+				dracoLoader.setDecoderPath(decoderPaths[0]);
+				gltfLoader.setDRACOLoader(dracoLoader);
+				
+				console.log('✅ Draco decoder configured');
+			} catch (error) {
+				console.error('❌ Failed to setup Draco decoder:', error);
+				if (modelOption.compressed) {
+					callback(false);
+					return;
+				}
+			}
+		} else if (modelOption.compressed) {
+			console.warn('⚠️ Compressed model but no DRACOLoader available');
+			callback(false);
+			return;
+		}
+		
+		// Load the model
+		gltfLoader.load(
+			modelOption.path,
+			function(gltf) {
+				console.log('✅ GLTF model loaded successfully');
+				handleModelLoaded(gltf.scene);
+				callback(true);
+			},
+			function(progress) {
+				if (progress.lengthComputable) {
+					var percent = Math.round(progress.loaded / progress.total * 100);
+					updateLoadingText(`Loading ${modelOption.name}: ${percent}%`);
+				}
+			},
+			function(error) {
+				console.error('❌ GLTF loading failed:', error);
+				callback(false);
+			}
+		);
 	}
 	
-	const startTime = performance.now();
-	
-	gltfLoader.load(
-		modelOption.path,
-		function(gltf) {
-			const loadTime = performance.now() - startTime;
-			console.log(`✅ ${modelOption.name} loaded in ${loadTime.toFixed(2)}ms`);
-			
-			handleModelSuccess(gltf.scene, modelOption.name, loadTime);
-			callback(true);
-		},
-		function(progress) {
-			if (progress.lengthComputable) {
-				const percent = Math.round(progress.loaded / progress.total * 100);
-				updateLoadingText(`Loading ${modelOption.name}: ${percent}%`);
-			}
-		},
-		function(error) {
-			console.error(`❌ ${modelOption.name} failed:`, error);
-			logDebug(`GLB Error: ${error.message || error}`);
-			callback(false);
-		}
-	);
-}
-
-function loadOBJModel(modelOption, callback) {
-	console.log('🔄 Loading OBJ fallback...');
-	
-	new THREE.MTLLoader()
-		.setPath('models/')
-		.load('ETERRY.mtl', 
+	function loadOBJModel(modelOption, callback) {
+		console.log('🔄 Loading OBJ model...');
+		
+		// Load MTL first
+		var mtlLoader = new THREE.MTLLoader();
+		mtlLoader.setPath('models/');
+		mtlLoader.load('ETERRY.mtl', 
 			function(materials) {
 				materials.preload();
-				new THREE.OBJLoader()
-					.setMaterials(materials)
-					.setPath('models/')
-					.load('ETERRY.obj', 
-						function(group) {
-							console.log("✅ OBJ loaded successfully");
-							
-							const model = group.children[0];
-							handleModelSuccess(model, modelOption.name, 0);
-							callback(true);
-						}, 
-						function(progress) {
-							if (progress.lengthComputable) {
-								const percent = Math.round(progress.loaded / progress.total * 100);
-								updateLoadingText(`Loading ${modelOption.name}: ${percent}%`);
-							}
-						},
-						function(error) {
-							console.error("❌ OBJ loading failed:", error);
-							callback(false);
+				
+				// Load OBJ
+				var objLoader = new THREE.OBJLoader();
+				objLoader.setMaterials(materials);
+				objLoader.setPath('models/');
+				objLoader.load('ETERRY.obj',
+					function(group) {
+						console.log('✅ OBJ model loaded successfully');
+						handleModelLoaded(group);
+						callback(true);
+					},
+					function(progress) {
+						if (progress.lengthComputable) {
+							var percent = Math.round(progress.loaded / progress.total * 100);
+							updateLoadingText(`Loading ${modelOption.name}: ${percent}%`);
 						}
-					);
+					},
+					function(error) {
+						console.error('❌ OBJ loading failed:', error);
+						callback(false);
+					}
+				);
 			},
 			function(progress) {
 				updateLoadingText('Loading materials...');
 			},
 			function(error) {
-				console.error("❌ MTL loading failed:", error);
+				console.error('❌ MTL loading failed:', error);
 				callback(false);
 			}
 		);
-}
-
-function handleModelSuccess(model, modelName, loadTime) {
-	console.log('🎉 Processing loaded model...');
-	
-	// Remove previous model if exists
-	if (currentModel) {
-		markerRoot1.remove(currentModel);
 	}
 	
-	currentModel = model;
-	
-	// Debug mesh information
-	let meshCount = 0;
-	let totalVertices = 0;
-	
-	model.traverse(function(child) {
-		if (child.isMesh) {
-			meshCount++;
-			const vertices = child.geometry.attributes.position ? 
-				child.geometry.attributes.position.count : 0;
-			totalVertices += vertices;
-			
-			// Ensure compatibility
-			child.material.side = THREE.DoubleSide;
-			child.material.needsUpdate = true;
-			
-			// Fix potential material issues
-			if (child.material.transparent === undefined) {
-				child.material.transparent = false;
-			}
-			
-			// Ensure material has color
-			if (!child.material.color) {
-				child.material.color = new THREE.Color(0x888888);
-			}
-			
-			logDebug(`Mesh: ${child.name || 'Unnamed'}, Vertices: ${vertices}`);
+	function handleModelLoaded(model) {
+		console.log('🎉 Processing loaded model...');
+		
+		// Remove any existing model
+		if (currentModel) {
+			markerRoot1.remove(currentModel);
 		}
+		
+		currentModel = model;
+		
+		// Process the model
+		var meshCount = 0;
+		var totalVertices = 0;
+		
+		model.traverse(function(child) {
+			if (child.isMesh) {
+				meshCount++;
+				
+				var vertices = child.geometry.attributes.position ? 
+					child.geometry.attributes.position.count : 0;
+				totalVertices += vertices;
+				
+				// Ensure material compatibility
+				if (child.material) {
+					child.material.side = THREE.DoubleSide;
+					child.material.needsUpdate = true;
+				}
+			}
+		});
+		
+		// Position the model appropriately for AR
+		model.position.set(0, 0, 0);
+		model.rotation.set(0, 0, 0);
+		model.scale.set(1, 1, 1);
+		
+		// Add to AR marker
+		markerRoot1.add(model);
+		
+		console.log(`🎯 Model added: ${meshCount} meshes, ${totalVertices} vertices`);
+	}
+	
+	// Animation loop
+	function animate() {
+		requestAnimationFrame(animate);
+		
+		// Update AR
+		if (arToolkitSource && arToolkitSource.ready !== false) {
+			arToolkitContext.update(arToolkitSource.domElement);
+		}
+		
+		// Render
+		renderer.render(scene, camera);
+	}
+	
+	// Start animation loop
+	animate();
+	
+	// Utility functions
+	function updateLoadingText(text) {
+		var loadingText = document.getElementById('loadingText');
+		if (loadingText) loadingText.textContent = text;
+	}
+	
+	function updateStatus(text, type) {
+		var statusBar = document.getElementById('statusBar');
+		var statusText = document.getElementById('statusText');
+		
+		if (statusText) statusText.textContent = text;
+		if (statusBar) {
+			statusBar.className = '';
+			if (type === 'success') statusBar.classList.add('status-success');
+			else if (type === 'warning') statusBar.classList.add('status-warning');
+			else if (type === 'error') statusBar.classList.add('status-error');
+			statusBar.style.display = 'block';
+		}
+		
+		console.log(`📊 Status: ${text}`);
+	}
+	
+	function hideLoadingScreen() {
+		var loadingScreen = document.getElementById('loadingScreen');
+		if (loadingScreen) {
+			loadingScreen.style.opacity = '0';
+			loadingScreen.style.transition = 'opacity 0.5s ease';
+			setTimeout(function() {
+				loadingScreen.style.display = 'none';
+			}, 500);
+		}
+	}
+	
+	// Error handling
+	window.addEventListener('error', function(e) {
+		console.error('💥 JavaScript Error:', e.error);
+		updateStatus('Application error occurred', 'error');
 	});
 	
-	// Position and scale for AR
-	model.position.set(0, 0, 0);
-	model.rotation.set(0, 0, 0);
-	model.scale.set(1, 1, 1);
-	
-	// Add to AR scene
-	markerRoot1.add(model);
-	
-	// Hide test geometry
-	if (testMesh) {
-		testMesh.visible = false;
-	}
-	
-	console.log(`🎯 Model added: ${meshCount} meshes, ${totalVertices} vertices`);
-	logDebug(`Load time: ${loadTime.toFixed(2)}ms, Meshes: ${meshCount}, Vertices: ${totalVertices}`);
+	console.log('🚀 E-TERRY AR Application initialized successfully');
 }
-
-// Performance monitoring functions (FIXED: moved after variable declarations)
-function monitorPerformance() {
-	frameCount++;
-	const currentTime = performance.now();
-	
-	if (currentTime - lastFPSUpdate >= 1000) {
-		currentFPS = frameCount;
-		frameCount = 0;
-		lastFPSUpdate = currentTime;
-		
-		logDebug(`FPS: ${currentFPS}, Memory: ${getMemoryUsage()}`);
-		
-		if (currentFPS < 20) {
-			updateStatus(`Low FPS: ${currentFPS}`, 'warning');
-		}
-	}
-}
-
-function getMemoryUsage() {
-	if (performance.memory) {
-		return `${(performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1)}MB`;
-	}
-	return 'Unknown';
-}
-
-// UI Helper Functions
-function updateLoadingText(text, details = '') {
-	const loadingText = document.getElementById('loadingText');
-	const loadingDetails = document.getElementById('loadingDetails');
-	if (loadingText) loadingText.textContent = text;
-	if (loadingDetails) loadingDetails.textContent = details;
-}
-
-function hideLoadingScreen() {
-	const loadingScreen = document.getElementById('loadingScreen');
-	if (loadingScreen) {
-		loadingScreen.style.opacity = '0';
-		loadingScreen.style.transition = 'opacity 0.5s ease';
-		setTimeout(() => {
-			loadingScreen.style.display = 'none';
-		}, 500);
-	}
-	
-	// Show status bar
-	const statusBar = document.getElementById('statusBar');
-	if (statusBar) {
-		statusBar.style.display = 'block';
-	}
-}
-
-function updateStatus(text, type = 'info') {
-	const statusBar = document.getElementById('statusBar');
-	const statusText = document.getElementById('statusText');
-	
-	if (statusText) statusText.textContent = text;
-	if (statusBar) {
-		statusBar.className = '';
-		if (type === 'success') statusBar.classList.add('status-success');
-		else if (type === 'warning') statusBar.classList.add('status-warning');
-		else if (type === 'error') statusBar.classList.add('status-error');
-	}
-	
-	console.log(`📊 Status: ${text}`);
-}
-
-function logDebug(message, data = null) {
-	if (debugMode) {
-		const debugContent = document.getElementById('debugContent');
-		if (debugContent) {
-			const timestamp = new Date().toLocaleTimeString();
-			const logLine = `[${timestamp}] ${message}${data ? ' | ' + JSON.stringify(data) : ''}`;
-			debugContent.innerHTML = logLine + '<br>' + debugContent.innerHTML;
-			
-			// Keep only last 20 lines
-			const lines = debugContent.innerHTML.split('<br>');
-			if (lines.length > 20) {
-				debugContent.innerHTML = lines.slice(0, 20).join('<br>');
-			}
-		}
-	}
-	console.log('🔧', message, data);
-}
-
-// Control Functions
-function toggleDebug() {
-	debugMode = !debugMode;
-	const debugPanel = document.getElementById('debugPanel');
-	if (debugPanel) {
-		debugPanel.style.display = debugMode ? 'block' : 'none';
-	}
-	updateStatus(`Debug mode: ${debugMode ? 'ON' : 'OFF'}`);
-}
-
-function resetModel() {
-	if (currentModel) {
-		currentModel.position.set(0, 0, 0);
-		currentModel.rotation.set(0, 0, 0);
-		currentModel.scale.set(1, 1, 1);
-		updateStatus('Model reset to default position');
-	}
-}
-
-function switchModel() {
-	modelIndex = (modelIndex + 1) % modelOptions.length;
-	updateStatus(`Switching to ${modelOptions[modelIndex].name}...`);
-	tryLoadModel(modelIndex);
-}
-
-// AR Update and Render Functions
-function update() {
-	if (arToolkitSource && arToolkitSource.ready !== false) {
-		arToolkitContext.update(arToolkitSource.domElement);
-	}
-}
-
-function render() {
-	renderer.render(scene, camera);
-}
-
-function animate() {
-	requestAnimationFrame(animate);
-	deltaTime = clock.getDelta();
-	totalTime += deltaTime;
-	
-	monitorPerformance();
-	update();
-	render();
-}
-
-// Error handling
-window.addEventListener('error', function(e) {
-	console.error('💥 JavaScript Error:', e.error);
-	updateStatus('Application error occurred', 'error');
-	logDebug('Error', { message: e.message, filename: e.filename, line: e.lineno });
-});
-
-window.addEventListener('unhandledrejection', function(e) {
-	console.error('💥 Unhandled Promise Rejection:', e.reason);
-	updateStatus('Promise rejection error', 'error');
-	logDebug('Promise rejection', e.reason);
-});
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', function() {
-	if (arToolkitSource && arToolkitSource.domElement) {
-		arToolkitSource.domElement.srcObject = null;
-	}
-});
-
-console.log('🚀 E-TERRY AR Application initialized');
-
 </script>
 
 </body>

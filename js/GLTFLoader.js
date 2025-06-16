@@ -2,6 +2,7 @@ THREE.GLTFLoader = function ( manager ) {
     this.manager = ( manager !== undefined ) ? manager : THREE.DefaultLoadingManager;
     this.path = '';
     this.dracoLoader = null;
+    this.textureLoader = new THREE.TextureLoader( this.manager );
 };
 
 THREE.GLTFLoader.prototype = {
@@ -101,6 +102,8 @@ THREE.GLTFLoader.prototype = {
             console.log('GLTFLoader: JSON parsed successfully');
             console.log('GLTFLoader: Found', (json.meshes || []).length, 'meshes');
             console.log('GLTFLoader: Found', (json.materials || []).length, 'materials');
+            console.log('GLTFLoader: Found', (json.textures || []).length, 'textures');
+            console.log('GLTFLoader: Found', (json.images || []).length, 'images');
             console.log('GLTFLoader: Found', (json.nodes || []).length, 'nodes');
             
             // Check for Draco extension
@@ -126,8 +129,12 @@ THREE.GLTFLoader.prototype = {
         var scene = new THREE.Group();
         scene.name = 'Scene';
 
-        // Parse materials first
-        var materials = this.parseMaterials( json );
+        // Parse images and textures first
+        var images = this.parseImages( json, binaryData );
+        var textures = this.parseTextures( json, images );
+        
+        // Parse materials with texture support
+        var materials = this.parseMaterials( json, textures );
         
         // Parse meshes (this now handles Draco)
         this.parseMeshes( json, binaryData, materials, function( meshes ) {
@@ -163,32 +170,201 @@ THREE.GLTFLoader.prototype = {
         });
     },
 
-    parseMaterials: function ( json ) {
-        var materials = [];
+    parseImages: function ( json, binaryData ) {
+        var images = [];
         
-        if ( json.materials ) {
-            for ( var i = 0; i < json.materials.length; i++ ) {
-                var materialDef = json.materials[i];
-                var material = new THREE.MeshBasicMaterial();
+        if ( !json.images ) {
+            return images;
+        }
+        
+        console.log('GLTFLoader: Processing', json.images.length, 'images');
+        
+        for ( var i = 0; i < json.images.length; i++ ) {
+            var imageDef = json.images[i];
+            var image = null;
+            
+            if ( imageDef.bufferView !== undefined ) {
+                // Image data is in buffer
+                var bufferView = json.bufferViews[imageDef.bufferView];
+                var byteOffset = bufferView.byteOffset || 0;
+                var byteLength = bufferView.byteLength;
                 
-                if ( materialDef.name ) material.name = materialDef.name;
+                if ( binaryData ) {
+                    var imageData = binaryData.slice( byteOffset, byteOffset + byteLength );
+                    var blob = new Blob( [imageData], { type: imageDef.mimeType || 'image/png' } );
+                    var imageUrl = URL.createObjectURL( blob );
+                    
+                    image = new Image();
+                    image.src = imageUrl;
+                    
+                    console.log('GLTFLoader: Created image from buffer:', imageDef.name || 'Image_' + i, 'size:', byteLength);
+                }
+            } else if ( imageDef.uri ) {
+                // External image file
+                image = new Image();
+                image.src = this.path + imageDef.uri;
                 
-                if ( materialDef.pbrMetallicRoughness ) {
-                    var pbr = materialDef.pbrMetallicRoughness;
-                    if ( pbr.baseColorFactor ) {
-                        material.color.setRGB( pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2] );
-                        if ( pbr.baseColorFactor[3] < 1.0 ) {
-                            material.transparent = true;
-                            material.opacity = pbr.baseColorFactor[3];
-                        }
+                console.log('GLTFLoader: Loading external image:', imageDef.uri);
+            }
+            
+            images[i] = image;
+        }
+        
+        return images;
+    },
+
+    parseTextures: function ( json, images ) {
+        var textures = [];
+        
+        if ( !json.textures ) {
+            return textures;
+        }
+        
+        console.log('GLTFLoader: Processing', json.textures.length, 'textures');
+        
+        for ( var i = 0; i < json.textures.length; i++ ) {
+            var textureDef = json.textures[i];
+            var texture = null;
+            
+            if ( textureDef.source !== undefined && images[textureDef.source] ) {
+                texture = new THREE.Texture( images[textureDef.source] );
+                texture.needsUpdate = true;
+                
+                // Set texture properties
+                if ( textureDef.sampler !== undefined && json.samplers ) {
+                    var sampler = json.samplers[textureDef.sampler];
+                    
+                    // Wrap modes
+                    if ( sampler.wrapS !== undefined ) {
+                        texture.wrapS = sampler.wrapS === 10497 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+                    }
+                    if ( sampler.wrapT !== undefined ) {
+                        texture.wrapT = sampler.wrapT === 10497 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+                    }
+                    
+                    // Filter modes
+                    if ( sampler.magFilter !== undefined ) {
+                        texture.magFilter = sampler.magFilter === 9729 ? THREE.LinearFilter : THREE.NearestFilter;
+                    }
+                    if ( sampler.minFilter !== undefined ) {
+                        texture.minFilter = sampler.minFilter === 9729 ? THREE.LinearFilter : THREE.NearestFilter;
                     }
                 }
                 
-                material.side = THREE.DoubleSide;
-                materials[i] = material;
+                texture.flipY = false; // GLTF textures don't need Y flip
                 
-                console.log('GLTFLoader: Created material:', material.name || 'Material_' + i);
+                console.log('GLTFLoader: Created texture:', textureDef.name || 'Texture_' + i);
             }
+            
+            textures[i] = texture;
+        }
+        
+        return textures;
+    },
+
+    parseMaterials: function ( json, textures ) {
+        var materials = [];
+        
+        if ( !json.materials ) {
+            // Create default material
+            var defaultMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 });
+            defaultMaterial.name = 'DefaultMaterial';
+            materials[0] = defaultMaterial;
+            console.log('GLTFLoader: No materials found, created default material');
+            return materials;
+        }
+        
+        console.log('GLTFLoader: Processing', json.materials.length, 'materials');
+        
+        for ( var i = 0; i < json.materials.length; i++ ) {
+            var materialDef = json.materials[i];
+            
+            // Use MeshStandardMaterial for better PBR support
+            var material = new THREE.MeshStandardMaterial();
+            
+            if ( materialDef.name ) material.name = materialDef.name;
+            
+            // Handle PBR metallic roughness
+            if ( materialDef.pbrMetallicRoughness ) {
+                var pbr = materialDef.pbrMetallicRoughness;
+                
+                // Base color
+                if ( pbr.baseColorFactor ) {
+                    material.color.setRGB( pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2] );
+                    if ( pbr.baseColorFactor[3] < 1.0 ) {
+                        material.transparent = true;
+                        material.opacity = pbr.baseColorFactor[3];
+                    }
+                }
+                
+                // Base color texture
+                if ( pbr.baseColorTexture && textures[pbr.baseColorTexture.index] ) {
+                    material.map = textures[pbr.baseColorTexture.index];
+                    console.log('GLTFLoader: Applied base color texture to material:', material.name);
+                }
+                
+                // Metallic and roughness
+                if ( pbr.metallicFactor !== undefined ) {
+                    material.metalness = pbr.metallicFactor;
+                }
+                if ( pbr.roughnessFactor !== undefined ) {
+                    material.roughness = pbr.roughnessFactor;
+                }
+                
+                // Metallic roughness texture
+                if ( pbr.metallicRoughnessTexture && textures[pbr.metallicRoughnessTexture.index] ) {
+                    material.metalnessMap = textures[pbr.metallicRoughnessTexture.index];
+                    material.roughnessMap = textures[pbr.metallicRoughnessTexture.index];
+                    console.log('GLTFLoader: Applied metallic/roughness texture to material:', material.name);
+                }
+            }
+            
+            // Normal texture
+            if ( materialDef.normalTexture && textures[materialDef.normalTexture.index] ) {
+                material.normalMap = textures[materialDef.normalTexture.index];
+                if ( materialDef.normalTexture.scale !== undefined ) {
+                    material.normalScale = new THREE.Vector2( materialDef.normalTexture.scale, materialDef.normalTexture.scale );
+                }
+                console.log('GLTFLoader: Applied normal texture to material:', material.name);
+            }
+            
+            // Occlusion texture
+            if ( materialDef.occlusionTexture && textures[materialDef.occlusionTexture.index] ) {
+                material.aoMap = textures[materialDef.occlusionTexture.index];
+                if ( materialDef.occlusionTexture.strength !== undefined ) {
+                    material.aoMapIntensity = materialDef.occlusionTexture.strength;
+                }
+                console.log('GLTFLoader: Applied occlusion texture to material:', material.name);
+            }
+            
+            // Emissive
+            if ( materialDef.emissiveFactor ) {
+                material.emissive.setRGB( materialDef.emissiveFactor[0], materialDef.emissiveFactor[1], materialDef.emissiveFactor[2] );
+            }
+            
+            if ( materialDef.emissiveTexture && textures[materialDef.emissiveTexture.index] ) {
+                material.emissiveMap = textures[materialDef.emissiveTexture.index];
+                console.log('GLTFLoader: Applied emissive texture to material:', material.name);
+            }
+            
+            // Alpha mode
+            if ( materialDef.alphaMode ) {
+                if ( materialDef.alphaMode === 'BLEND' ) {
+                    material.transparent = true;
+                } else if ( materialDef.alphaMode === 'MASK' ) {
+                    material.alphaTest = materialDef.alphaCutoff !== undefined ? materialDef.alphaCutoff : 0.5;
+                }
+            }
+            
+            // Double sided
+            if ( materialDef.doubleSided ) {
+                material.side = THREE.DoubleSide;
+            }
+            
+            materials[i] = material;
+            
+            console.log('GLTFLoader: Created material:', material.name || 'Material_' + i, 
+                       'hasMap:', !!material.map, 'hasNormalMap:', !!material.normalMap);
         }
         
         return materials;
@@ -239,7 +415,7 @@ THREE.GLTFLoader.prototype = {
                     if ( scope.dracoLoader ) {
                         scope.parseDracoGeometry( json, primitive, binaryData, function( geometry ) {
                             if ( geometry ) {
-                                var material = materials[0] || new THREE.MeshBasicMaterial({ color: 0x888888 });
+                                var material = materials[0] || new THREE.MeshStandardMaterial({ color: 0x888888 });
                                 if ( primitive.material !== undefined && materials[primitive.material] ) {
                                     material = materials[primitive.material];
                                 }
@@ -248,7 +424,8 @@ THREE.GLTFLoader.prototype = {
                                 mesh.name = meshDef.name || 'Mesh_' + i + '_' + j;
                                 group.add( mesh );
                                 
-                                console.log('GLTFLoader: Created Draco mesh:', mesh.name, 'vertices:', geometry.attributes.position.count);
+                                console.log('GLTFLoader: Created Draco mesh:', mesh.name, 'vertices:', geometry.attributes.position.count,
+                                           'material:', material.name, 'hasTexture:', !!material.map);
                             }
                             
                             completedDraco++;
@@ -263,7 +440,7 @@ THREE.GLTFLoader.prototype = {
                     // Regular (uncompressed) geometry
                     var geometry = this.parseGeometry( json, primitive, binaryData );
                     
-                    var material = materials[0] || new THREE.MeshBasicMaterial({ color: 0x888888 });
+                    var material = materials[0] || new THREE.MeshStandardMaterial({ color: 0x888888 });
                     if ( primitive.material !== undefined && materials[primitive.material] ) {
                         material = materials[primitive.material];
                     }
@@ -272,7 +449,8 @@ THREE.GLTFLoader.prototype = {
                     mesh.name = meshDef.name || 'Mesh_' + i + '_' + j;
                     group.add( mesh );
                     
-                    console.log('GLTFLoader: Created regular mesh:', mesh.name, 'vertices:', geometry.attributes.position.count);
+                    console.log('GLTFLoader: Created regular mesh:', mesh.name, 'vertices:', geometry.attributes.position.count,
+                               'material:', material.name, 'hasTexture:', !!material.map);
                 }
             }
             
@@ -300,42 +478,7 @@ THREE.GLTFLoader.prototype = {
         var scope = this;
         this.dracoLoader.decodeDracoFile( dracoData, function( geometry ) {
             console.log('✅ GLTFLoader: Draco geometry decoded successfully');
-            
-            // Map Draco attributes to glTF attributes
-            var dracoAttributes = dracoExtension.attributes;
-            var gltfGeometry = new THREE.BufferGeometry();
-            
-            // Copy attributes from Draco geometry
-            for ( var attributeName in geometry.attributes ) {
-                var attribute = geometry.attributes[attributeName];
-                
-                // Map Draco attribute names to Three.js names
-                var threeAttributeName = attributeName;
-                if ( attributeName === 'position' ) threeAttributeName = 'position';
-                else if ( attributeName === 'normal' ) threeAttributeName = 'normal';
-                else if ( attributeName === 'uv' ) threeAttributeName = 'uv';
-                else if ( attributeName === 'color' ) threeAttributeName = 'color';
-                
-                if ( gltfGeometry.setAttribute ) {
-                    gltfGeometry.setAttribute( threeAttributeName, attribute );
-                } else {
-                    gltfGeometry.addAttribute( threeAttributeName, attribute );
-                }
-            }
-            
-            // Copy index if present
-            if ( geometry.index ) {
-                gltfGeometry.setIndex( geometry.index );
-            }
-            
-            // Compute normals if not present
-            if ( !gltfGeometry.attributes.normal && !gltfGeometry.getAttribute('normal') ) {
-                gltfGeometry.computeVertexNormals();
-                console.log('GLTFLoader: Computed vertex normals for Draco geometry');
-            }
-            
-            onComplete( gltfGeometry );
-            
+            onComplete( geometry );
         }, function( error ) {
             console.error('❌ GLTFLoader: Draco decoding failed:', error);
             
@@ -419,25 +562,6 @@ THREE.GLTFLoader.prototype = {
             console.log('GLTFLoader: Computed vertex normals');
         }
         
-        // Fallback: create simple geometry if nothing was loaded
-        if ( !geometry.attributes.position && !geometry.getAttribute('position') ) {
-            console.warn('GLTFLoader: No position data found, creating fallback geometry');
-            var positions = new Float32Array([
-                0, 0.5, 0,
-                -0.5, -0.5, 0,
-                0.5, -0.5, 0
-            ]);
-            var positionAttribute = new THREE.BufferAttribute( positions, 3 );
-            
-            if ( geometry.setAttribute ) {
-                geometry.setAttribute( 'position', positionAttribute );
-            } else {
-                geometry.addAttribute( 'position', positionAttribute );
-            }
-            
-            geometry.computeVertexNormals();
-        }
-        
         return geometry;
     },
 
@@ -468,8 +592,6 @@ THREE.GLTFLoader.prototype = {
         var type = accessor.type;
         var count = accessor.count;
         
-        console.log('GLTFLoader: Parsing accessor', accessorIndex, 'type:', type, 'count:', count, 'componentType:', componentType);
-        
         // Get typed array constructor
         var TypedArray;
         switch ( componentType ) {
@@ -496,16 +618,8 @@ THREE.GLTFLoader.prototype = {
             return new THREE.BufferAttribute( array, itemSize );
         }
         
-        // Validate byte offset
-        if ( byteOffset + count * itemSize * TypedArray.BYTES_PER_ELEMENT > binaryData.byteLength ) {
-            console.error('GLTFLoader: Data out of bounds for accessor', accessorIndex);
-            var array = new Float32Array( count * itemSize );
-            return new THREE.BufferAttribute( array, itemSize );
-        }
-        
         try {
             var array = new TypedArray( binaryData, byteOffset, count * itemSize );
-            console.log('GLTFLoader: Successfully created buffer attribute with', array.length, 'elements');
             return new THREE.BufferAttribute( array, itemSize );
         } catch ( error ) {
             console.error('GLTFLoader: Error creating typed array:', error);

@@ -1,1489 +1,764 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
-	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	<meta charset="utf-8">
-	<title>Augmented Reality E-TERRY - Draco Compressed Models</title>
-	
-	<!-- Include Three.js library -->
-	<script src='js/three.js'></script>
-	<script src='js/OBJLoader.js'></script>
-	<script src='js/MTLLoader.js'></script>
-	<script src='https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/loaders/GLTFLoader.js'></script>
-	
-	<!-- Load official DRACOLoader from CDN as fallback -->
-	<script src="https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/loaders/DRACOLoader.js" 
-	        onerror="console.warn('CDN DRACOLoader failed, using local version')"></script>
-	
-	<!-- Fallback to local DRACOLoader if CDN fails -->
-	<script>
-		// Check if CDN DRACOLoader loaded successfully
-		window.addEventListener('load', function() {
-			if (typeof THREE.DRACOLoader === 'undefined') {
-				console.log('Loading local DRACOLoader...');
-				var script = document.createElement('script');
-				script.src = 'js/DRACOLoader.js';
-				document.head.appendChild(script);
-			} else {
-				console.log('Using CDN DRACOLoader');
-			}
-		});
-	</script>
-	
-	<!-- Include jsartookit -->
-	<script src="jsartoolkit5/artoolkit.min.js"></script>
-	<script src="jsartoolkit5/artoolkit.api.js"></script>
-	
-	<!-- Include threex.artoolkit -->
-	<script src="threex/threex-artoolkitsource.js"></script>
-	<script src="threex/threex-artoolkitcontext.js"></script>
-	<script src="threex/threex-arbasecontrols.js"></script>
-	<script src="threex/threex-armarkercontrols.js"></script>
-	
-	<style>
-		body {
-			margin: 0px;
-			overflow: hidden;
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			background: #000;
-		}
-		
-		/* Loading indicator */
-		#loadingScreen {
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-			align-items: center;
-			z-index: 1000;
-			color: white;
-			text-align: center;
-		}
-		
-		.spinner {
-			border: 3px solid rgba(255,255,255,0.3);
-			border-radius: 50%;
-			border-top: 3px solid #fff;
-			width: 40px;
-			height: 40px;
-			animation: spin 1s linear infinite;
-			margin: 20px 0;
-		}
-		
-		@keyframes spin {
-			0% { transform: rotate(0deg); }
-			100% { transform: rotate(360deg); }
-		}
-		
-		#statusBar {
-			position: fixed;
-			top: 10px;
-			left: 10px;
-			right: 10px;
-			background: rgba(0,0,0,0.8);
-			color: white;
-			padding: 10px;
-			border-radius: 5px;
-			font-size: 12px;
-			z-index: 100;
-			display: none;
-		}
-		
-		.status-success { background: rgba(0,150,0,0.8) !important; }
-		.status-warning { background: rgba(255,150,0,0.8) !important; }
-		.status-error { background: rgba(150,0,0,0.8) !important; }
-		
-		#debugInfo {
-			position: fixed;
-			bottom: 10px;
-			left: 10px;
-			background: rgba(0,0,0,0.9);
-			color: white;
-			padding: 10px;
-			border-radius: 5px;
-			font-size: 11px;
-			max-width: 350px;
-			display: block;
-			line-height: 1.3;
-		}
-		
-		#debugInfo div {
-			margin: 2px 0;
-		}
-		
-		.debug-header {
-			font-weight: bold;
-			color: #4CAF50;
-		}
-	</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>Modern E-TERRY AR - Draco Compressed Models</title>
+    
+    <!-- Modern Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- AR.js - Modern version -->
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
+    
+    <!-- Modern loaders -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            overflow: hidden;
+        }
+
+        /* Modern loading screen with glassmorphism */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+        }
+
+        .loading-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .loading-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 15px;
+        }
+
+        /* Modern status bar */
+        #statusBar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            z-index: 100;
+            display: none;
+            border-left: 4px solid #4CAF50;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-success { border-left-color: #4CAF50; }
+        .status-warning { border-left-color: #FF9800; }
+        .status-error { border-left-color: #f44336; }
+
+        /* Modern debug panel */
+        #debugInfo {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 12px;
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .debug-section {
+            margin-bottom: 15px;
+        }
+
+        .debug-header {
+            font-weight: bold;
+            color: #4CAF50;
+            font-size: 13px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .debug-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            padding: 2px 0;
+        }
+
+        .debug-label {
+            color: #ccc;
+        }
+
+        .debug-value {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        /* Camera error overlay */
+        .camera-error {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            z-index: 1001;
+            display: none;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            #debugInfo {
+                max-width: calc(100vw - 40px);
+                bottom: 10px;
+                left: 10px;
+                font-size: 11px;
+            }
+
+            #statusBar {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+            }
+
+            .loading-title {
+                font-size: 2rem;
+            }
+
+            .loading-card {
+                padding: 30px 20px;
+                margin: 0 20px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-	<div id="loadingScreen">
-		<h1>E-TERRY AR</h1>
-		<div class="spinner"></div>
-		<p id="loadingText">Initializing...</p>
-	</div>
-	
-	<div id="statusBar">
-		<span id="statusText">Ready</span>
-	</div>
-	
-	<div id="debugInfo">
-		<div class="debug-header">🗜️ Draco Compressed Models Only</div>
-		<div>Format: <span id="formatInfo">Checking Draco support...</span></div>
-		<div>Textures: <span id="textureCount">0</span></div>
-		<div>Materials: <span id="materialCount">0</span></div>
-		<div>Meshes: <span id="meshCount">0</span></div>
-		<div>Images: <span id="imageCount">0</span></div>
-		<div>Camera: <span id="cameraInfo">Initializing...</span></div>
-		<div class="debug-header">🎨 Texture Debug</div>
-		<div id="textureDebug">No textures loaded</div>
-		<div class="debug-header">📁 Draco Loading Progress</div>
-		<div id="loadingProgress">Ready to load compressed models</div>
-	</div>
+    <div id="loadingScreen">
+        <div class="loading-card">
+            <h1 class="loading-title">E-TERRY AR</h1>
+            <div class="spinner"></div>
+            <p class="loading-text" id="loadingText">Initializing modern AR experience...</p>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="statusBar">
+        <span id="statusText">Ready</span>
+    </div>
 
-<script>
-// Wait for all scripts to load before initializing
-window.addEventListener('load', function() {
-	// Small delay to ensure all scripts are ready
-	setTimeout(initializeApp, 500);
-});
+    <div class="camera-error" id="cameraError">
+        <h3>Camera Access Required</h3>
+        <p>Please allow camera access to use AR features</p>
+        <button onclick="location.reload()">Retry</button>
+    </div>
+    
+    <div id="debugInfo">
+        <div class="debug-section">
+            <div class="debug-header">🗜️ Draco Compressed Models</div>
+            <div class="debug-row">
+                <span class="debug-label">Format:</span>
+                <span class="debug-value" id="formatInfo">Checking...</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Compression:</span>
+                <span class="debug-value" id="compressionInfo">N/A</span>
+            </div>
+        </div>
 
-function initializeApp() {
-	console.log('🗜️ Initializing E-TERRY AR - DRACO COMPRESSED MODELS ONLY');
-	
-	// Global variables
-	var scene, camera, renderer, clock;
-	var arToolkitSource, arToolkitContext;
-	var markerRoot1, currentModel;
-	var loadedTextures = [];
-	var debugTextureInfo = [];
-	
-	// Model options - compressed formats + fallback
-	var modelOptions = [
-		// {
-		// 	name: 'E-TERRY Compressed GLB (Draco Binary)',
-		// 	path: 'models/ETERRY_compressed.glb',
-		// 	type: 'glb',
-		// 	compressed: true
-		// },
-		{
-			name: 'E-TERRY Compressed GLTF (Draco Text)',
-			path: 'models/ETERRY_compressed.gltf',
-			type: 'gltf',
-			compressed: true
-		},
-		// {
-		// 	name: 'E-TERRY Standard GLB (Fallback - No Draco)',
-		// 	path: 'models/ETERRY.glb',
-		// 	type: 'glb',
-		// 	compressed: false
-		// }
-	];
-	
-	// Initialize the application
-	initialize();
-	
-	function initialize() {
-		updateLoadingText('Setting up 3D scene...');
-		
-		// Setup Three.js scene
-		scene = new THREE.Scene();
-		camera = new THREE.Camera();
-		scene.add(camera);
-		
-		// Enhanced lighting setup for better material visibility
-		setupLighting();
-		
-		// Setup renderer with better settings for textures
-		renderer = new THREE.WebGLRenderer({
-			antialias: true,
-			alpha: true,
-			preserveDrawingBuffer: false,
-			powerPreference: "high-performance"
-		});
-		
-		renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-		renderer.setSize(window.innerWidth, window.innerHeight);
-		renderer.domElement.style.position = 'absolute';
-		renderer.domElement.style.top = '0px';
-		renderer.domElement.style.left = '0px';
-		
-		// Enhanced renderer settings for better textures
-		renderer.outputEncoding = THREE.sRGBEncoding;
-		renderer.toneMapping = THREE.ACESFilmicToneMapping;
-		renderer.toneMappingExposure = 1.2;
-		renderer.shadowMap.enabled = false; // Disable shadows for AR
-		
-		// Enable texture caching
-		renderer.info.autoReset = false;
-		
-		document.body.appendChild(renderer.domElement);
-		
-		clock = new THREE.Clock();
-		
-		updateLoadingText('Setting up AR with HD camera...');
-		setupAR();
-	}
-	
-	function setupLighting() {
-		// Brighter ambient light for better texture visibility
-		var ambientLight = new THREE.AmbientLight(0x404040, 0.8);
-		scene.add(ambientLight);
-		
-		// Primary directional light
-		var directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-		directionalLight.position.set(2, 3, 1);
-		scene.add(directionalLight);
-		
-		// Fill light from opposite direction
-		var directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
-		directionalLight2.position.set(-2, -1, -1);
-		scene.add(directionalLight2);
-		
-		// Additional point light for close details
-		var pointLight = new THREE.PointLight(0xffffff, 0.8, 10);
-		pointLight.position.set(0, 3, 3);
-		scene.add(pointLight);
-		
-		console.log('✨ Enhanced lighting setup complete (brighter for texture visibility)');
-	}
-	
-	function setupAR() {
-		// Simplified AR source with better error handling
-		arToolkitSource = new THREEx.ArToolkitSource({
-			sourceType: 'webcam',
-			// Use more conservative settings that are more likely to work
-			sourceWidth: 640,
-			sourceHeight: 480,
-			displayWidth: window.innerWidth,
-			displayHeight: window.innerHeight
-		});
-		
-		arToolkitSource.init(function onReady() {
-			console.log('📷 AR camera ready');
-			updateLoadingText('Camera ready, configuring tracking...');
-			
-			// Get actual camera resolution
-			var video = arToolkitSource.domElement;
-			if (video && video.videoWidth && video.videoHeight) {
-				document.getElementById('cameraInfo').textContent = 
-					`${video.videoWidth}x${video.videoHeight}`;
-			} else {
-				document.getElementById('cameraInfo').textContent = 'Standard resolution';
-			}
-			
-			onResize();
-		}, function onError(error) {
-			console.error('❌ Camera initialization failed:', error);
-			document.getElementById('cameraInfo').textContent = 'Camera failed';
-			updateLoadingText('Camera failed, but AR might still work...');
-			// Continue anyway - sometimes AR works even with camera errors
-			setTimeout(function() {
-				setupMarker();
-			}, 1000);
-		});
-		
-		// Handle resize
-		function onResize() {
-			try {
-				arToolkitSource.onResizeElement();
-				arToolkitSource.copyElementSizeTo(renderer.domElement);
-				
-				if (arToolkitContext && arToolkitContext.arController !== null) {
-					arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-				}
-			} catch (error) {
-				console.warn('⚠️ Resize error (usually harmless):', error);
-			}
-		}
-		
-		window.addEventListener('resize', onResize);
-		
-		// AR context with better error handling
-		arToolkitContext = new THREEx.ArToolkitContext({
-			cameraParametersUrl: 'data/camera_para.dat',
-			detectionMode: 'mono',
-			// More conservative settings
-			maxDetectionRate: 30,
-			canvasWidth: 640,
-			canvasHeight: 480
-		});
-		
-		arToolkitContext.init(function onCompleted() {
-			camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-			console.log('🎯 AR tracking ready');
-			setupMarker();
-		}, function onError(error) {
-			console.error('❌ AR context initialization failed:', error);
-			updateLoadingText('AR setup failed, but model loading can continue...');
-			// Continue to load model anyway
-			setupMarker();
-		});
-	}
-	
-	function setupMarker() {
-		updateLoadingText('Setting up marker tracking...');
-		
-		// Setup marker
-		markerRoot1 = new THREE.Group();
-		scene.add(markerRoot1);
-		
-		var markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
-			type: 'pattern', 
-			patternUrl: 'data/eterry-logo.patt',
-			// Enhanced marker detection
-			changeMatrixMode: 'cameraTransformMatrix'
-		});
-		
-		// Add test geometry (more transparent to see model better)
-		var geometry = new THREE.PlaneBufferGeometry(1, 1);
-		var material = new THREE.MeshBasicMaterial({ 
-			color: 0x0000ff, 
-			opacity: 0.1,
-			transparent: true
-		});
-		var testMesh = new THREE.Mesh(geometry, material);
-		testMesh.rotation.x = -Math.PI/2;
-		markerRoot1.add(testMesh);
-		
-		updateLoadingText('Loading compressed 3D model with textures...');
-		loadModel();
-	}
-	
-	function loadModel() {
-		console.log('🤖 Starting DRACO-compressed model loading...');
-		console.log('🗜️ This app only supports Draco-compressed GLTF/GLB files');
-		
-		// Check Draco support first
-		if (typeof THREE.DRACOLoader === 'undefined') {
-			console.error('❌ DRACOLoader not available!');
-			console.error('💡 Cannot load compressed models without DRACOLoader');
-			updateStatus('DRACOLoader missing - cannot load compressed models', 'error');
-			document.getElementById('formatInfo').textContent = 'DRACOLoader missing';
-			document.getElementById('loadingProgress').textContent = 'DRACOLoader required for compressed models';
-			hideLoadingScreen();
-			return;
-		}
-		
-		// Check which compressed files exist
-		checkCompressedModelFiles();
-		
-		// Try each compressed model option
-		tryLoadModel(0);
-	}
-	
-	function checkCompressedModelFiles() {
-		console.log('🔍 === CHECKING COMPRESSED MODEL FILE AVAILABILITY ===');
-		
-		modelOptions.forEach(function(option, index) {
-			// Quick availability check using fetch HEAD request
-			fetch(option.path, { method: 'HEAD' })
-				.then(function(response) {
-					if (response.ok) {
-						var sizeKB = response.headers.get('content-length') ? 
-							Math.round(response.headers.get('content-length') / 1024) : 'unknown';
-						console.log(`✅ Compressed file exists: ${option.path} (${sizeKB}KB)`);
-						
-						// For GLTF, also check for corresponding .bin file
-						if (option.type === 'gltf') {
-							var binPath = option.path.replace('.gltf', '.bin');
-							fetch(binPath, { method: 'HEAD' })
-								.then(function(binResponse) {
-									if (binResponse.ok) {
-										var binSizeKB = binResponse.headers.get('content-length') ? 
-											Math.round(binResponse.headers.get('content-length') / 1024) : 'unknown';
-										console.log(`✅ Corresponding .bin file exists: ${binPath} (${binSizeKB}KB)`);
-									} else {
-										console.warn(`⚠️ .bin file missing: ${binPath} (${binResponse.status})`);
-									}
-								})
-								.catch(function(error) {
-									console.warn(`❌ .bin file check failed: ${binPath}`, error.message);
-								});
-						}
-					} else {
-						console.warn(`⚠️ Compressed file not accessible: ${option.path} (${response.status})`);
-						console.warn(`💡 Make sure the file exists and is accessible via HTTP`);
-					}
-				})
-				.catch(function(error) {
-					console.warn(`❌ Compressed file check failed: ${option.path}`, error.message);
-					console.warn(`💡 Check the file path and network connectivity`);
-				});
-		});
-		
-		// Additional debugging - check the actual URL being constructed
-		console.log('🌐 Current base URL:', window.location.origin + window.location.pathname);
-		console.log('📁 Expected file paths:');
-		modelOptions.forEach(function(option) {
-			var fullUrl = new URL(option.path, window.location.href).href;
-			console.log(`   ${option.name}: ${fullUrl}`);
-		});
-	}
-	
-	function tryLoadModel(index) {
-		if (index >= modelOptions.length) {
-			console.error('❌ All model loading attempts failed');
-			updateStatus('Model loading failed', 'error');
-			hideLoadingScreen();
-			return;
-		}
-		
-		var modelOption = modelOptions[index];
-		console.log(`📦 Attempting to load: ${modelOption.name}`);
-		updateLoadingText(`Loading ${modelOption.name} with texture analysis...`);
-		
-		if (modelOption.type === 'glb' || modelOption.type === 'gltf') {
-			loadGLTFModelWithTextureDebug(modelOption, function(success) {
-				if (success) {
-					console.log(`✅ Successfully loaded: ${modelOption.name}`);
-					updateStatus(`Loaded: ${modelOption.name}`, 'success');
-					hideLoadingScreen();
-				} else {
-					console.warn(`⚠️ Failed to load: ${modelOption.name}`);
-					tryLoadModel(index + 1);
-				}
-			});
-		} else if (modelOption.type === 'obj') {
-			loadOBJModelWithTextures(modelOption, function(success) {
-				if (success) {
-					console.log(`✅ Successfully loaded: ${modelOption.name}`);
-					updateStatus(`Loaded: ${modelOption.name}`, 'success');
-					hideLoadingScreen();
-				} else {
-					console.warn(`⚠️ Failed to load: ${modelOption.name}`);
-					tryLoadModel(index + 1);
-				}
-			});
-		}
-	}
-	
-	function loadGLTFModelWithTextureDebug(modelOption, callback) {
-		// Check if GLTFLoader is available
-		if (typeof THREE.GLTFLoader === 'undefined') {
-			console.error('❌ GLTFLoader not available');
-			callback(false);
-			return;
-		}
-		
-		console.log(`🔍 Loading ${modelOption.type.toUpperCase()} file: ${modelOption.path}`);
-		console.log(`🗜️ Compression: ${modelOption.compressed ? 'Draco compressed' : 'Standard (no compression)'}`);
-		
-		var gltfLoader = new THREE.GLTFLoader();
-		
-		// Setup DRACOLoader only for compressed files
-		if (modelOption.compressed) {
-			console.log('🗜️ === DRACO DECODER SETUP ===');
-			
-			// Check if DRACOLoader is available
-			if (typeof THREE.DRACOLoader === 'undefined') {
-				console.error('❌ DRACOLoader not available! Cannot load compressed files.');
-				console.error('💡 Make sure DRACOLoader script is loaded');
-				callback(false);
-				return;
-			}
-			
-			try {
-				var dracoLoader = new THREE.DRACOLoader();
-				
-				// Enhanced Draco decoder setup with multiple fallbacks
-				var decoderPaths = [
-					'https://www.gstatic.com/draco/versioned/decoders/1.5.6/',
-					'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/libs/draco/gltf/',
-					'https://unpkg.com/three@0.152.2/examples/js/libs/draco/gltf/',
-					'https://raw.githubusercontent.com/google/draco/master/javascript/'
-				];
-				
-				// Try the most reliable Google-hosted path first
-				dracoLoader.setDecoderPath(decoderPaths[0]);
-				
-				// Configure Draco settings
-				dracoLoader.setDecoderConfig({
-					type: 'js' // Use JavaScript decoder for better compatibility
-				});
-				
-				// Set worker limit
-				dracoLoader.setWorkerLimit(4);
-				
-				// CRITICAL: Set the Draco loader on GLTF loader
-				gltfLoader.setDRACOLoader(dracoLoader);
-				
-				console.log('✅ Draco decoder configured with path:', decoderPaths[0]);
-				console.log('✅ DRACOLoader set on GLTFLoader');
-				
-			} catch (error) {
-				console.error('❌ Failed to setup Draco decoder:', error);
-				callback(false);
-				return;
-			}
-			
-			// Override parseDracoGeometry to handle missing binary data for GLTF text format
-			var originalParseDracoGeometry = gltfLoader.parseDracoGeometry;
-			if (originalParseDracoGeometry) {
-				gltfLoader.parseDracoGeometry = function(json, primitive, binaryData, onComplete) {
-					console.log('🗜️ === DRACO GEOMETRY PARSING DEBUG ===');
-					console.log('JSON present:', !!json);
-					console.log('Primitive present:', !!primitive);
-					console.log('BinaryData present:', !!binaryData);
-					
-					if (binaryData) {
-						console.log('Binary data size:', binaryData.byteLength, 'bytes');
-						console.log('Binary data type:', binaryData.constructor.name);
-					} else {
-						console.warn('⚠️ BinaryData is missing for Draco geometry');
-						
-						// For GLTF text format, we need to load the binary data from .bin file
-						if (modelOption.type === 'gltf') {
-							console.log('🔄 GLTF text format detected - attempting to load binary data from .bin file...');
-							
-							// Try to load the corresponding .bin file
-							var binPath = modelOption.path.replace('.gltf', '.bin');
-							console.log('📁 Attempting to load binary data from:', binPath);
-							
-							var xhr = new XMLHttpRequest();
-							xhr.open('GET', binPath, true);
-							xhr.responseType = 'arraybuffer';
-							
-							xhr.onload = function() {
-								if (xhr.status === 200) {
-									console.log('✅ Binary data loaded from .bin file:', xhr.response.byteLength, 'bytes');
-									
-									// Call original function with loaded binary data
-									try {
-										originalParseDracoGeometry.call(gltfLoader, json, primitive, xhr.response, onComplete);
-									} catch (error) {
-										console.error('❌ Draco parsing failed even with binary data:', error);
-										createFallbackGeometry(onComplete);
-									}
-								} else {
-									console.error('❌ Failed to load .bin file:', xhr.status);
-									createFallbackGeometry(onComplete);
-								}
-							};
-							
-							xhr.onerror = function() {
-								console.error('❌ Network error loading .bin file');
-								createFallbackGeometry(onComplete);
-							};
-							
-							xhr.send();
-							return; // Don't continue with original function
-						}
-					}
-					
-					// If we have binary data or it's GLB format, call original function
-					if (binaryData) {
-						try {
-							originalParseDracoGeometry.call(this, json, primitive, binaryData, onComplete);
-						} catch (error) {
-							console.error('❌ Draco parsing failed:', error);
-							createFallbackGeometry(onComplete);
-						}
-					} else {
-						console.error('❌ No binary data available and not GLTF format');
-						createFallbackGeometry(onComplete);
-					}
-					
-					function createFallbackGeometry(callback) {
-						console.log('🔧 Creating fallback geometry for failed Draco parsing...');
-						
-						var fallbackGeometry = new THREE.BufferGeometry();
-						var positions = new Float32Array([
-							// Simple cube vertices
-							-0.5, -0.5, -0.5,  0.5, -0.5, -0.5,  0.5,  0.5, -0.5,
-							-0.5, -0.5, -0.5,  0.5,  0.5, -0.5, -0.5,  0.5, -0.5,
-							-0.5, -0.5,  0.5,  0.5, -0.5,  0.5,  0.5,  0.5,  0.5,
-							-0.5, -0.5,  0.5,  0.5,  0.5,  0.5, -0.5,  0.5,  0.5
-						]);
-						
-						if (fallbackGeometry.setAttribute) {
-							fallbackGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-						} else {
-							fallbackGeometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-						}
-						
-						fallbackGeometry.computeVertexNormals();
-						console.log('✅ Fallback geometry created');
-						callback(fallbackGeometry);
-					}
-				};
-			}
-		} else {
-			console.log('📦 Standard GLB/GLTF file - no Draco compression expected');
-		}
-		
-		// Enhanced progress tracking
-		var loadingStartTime = Date.now();
-		
-		// Enhanced file loading with proper path handling
-		var originalLoad = gltfLoader.load;
-		gltfLoader.load = function(url, onLoad, onProgress, onError) {
-			console.log(`📁 Loading compressed file: ${url}`);
-			
-			// For GLTF text format, set the path so that .bin and texture files can be found
-			// BUT don't double the path - extract just the directory part
-			if (modelOption.type === 'gltf') {
-				// Extract directory from full path
-				var lastSlashIndex = url.lastIndexOf('/');
-				if (lastSlashIndex !== -1) {
-					var basePath = url.substring(0, lastSlashIndex + 1);
-					console.log('📂 Setting base path for GLTF resources:', basePath);
-					gltfLoader.setPath(basePath);
-					
-					// Use just the filename for the actual load
-					var filename = url.substring(lastSlashIndex + 1);
-					console.log('📄 Loading filename:', filename);
-					url = filename;
-				} else {
-					console.log('📂 No directory in path, using current directory');
-					gltfLoader.setPath('./');
-				}
-			}
-			
-			// Call original load with corrected URL
-			originalLoad.call(this, url, onLoad, onProgress, onError);
-		};
-		
-		// Load the model
-		gltfLoader.load(
-			modelOption.path,
-			function(gltf) {
-				var loadingTime = Date.now() - loadingStartTime;
-				console.log(`✅ ${modelOption.type.toUpperCase()} model loaded successfully in ${loadingTime}ms`);
-				
-				// Verify we have a scene
-				if (!gltf.scene) {
-					console.error('❌ No scene found in loaded GLTF');
-					callback(false);
-					return;
-				}
-				
-				// Debug the raw GLTF structure before processing
-				debugGLTFStructure(gltf);
-				
-				// Analyze compression results (if applicable)
-				if (modelOption.compressed) {
-					analyzeDracoResults(gltf);
-				} else {
-					analyzeStandardResults(gltf);
-				}
-				
-				// Special texture handling for GLTF text format
-				if (modelOption.type === 'gltf') {
-					console.log('🎨 === GLTF TEXT FORMAT TEXTURE ANALYSIS ===');
-					
-					// Check if textures are referenced but not loaded
-					var texturesFound = false;
-					if (gltf.parser && gltf.parser.json) {
-						var json = gltf.parser.json;
-						if (json.images && json.images.length > 0) {
-							console.log('🖼️ Found', json.images.length, 'image references in GLTF');
-							json.images.forEach(function(img, i) {
-								console.log(`  Image ${i}: ${img.uri || 'embedded'} (${img.mimeType || 'unknown type'})`);
-							});
-							texturesFound = true;
-						}
-						
-						if (json.textures && json.textures.length > 0) {
-							console.log('🎨 Found', json.textures.length, 'texture references in GLTF');
-							texturesFound = true;
-						}
-					}
-					
-					if (texturesFound) {
-						console.log('✅ GLTF file contains texture references');
-						console.log('💡 If textures don\'t appear, check that image files exist in models/ folder');
-					} else {
-						console.warn('⚠️ No texture references found in GLTF file');
-					}
-				}
-				
-				handleModelLoadedWithTextureAnalysis(gltf.scene, gltf);
-				callback(true);
-			},
-			function(progress) {
-				if (progress.lengthComputable) {
-					var percent = Math.round(progress.loaded / progress.total * 100);
-					var loaded = Math.round(progress.loaded / 1024);
-					var total = Math.round(progress.total / 1024);
-					updateLoadingText(`Loading ${modelOption.name}: ${percent}% (${loaded}KB/${total}KB)`);
-					console.log(`📈 Loading progress: ${percent}% - ${loaded}KB of ${total}KB`);
-				} else {
-					console.log('📈 Loading file...');
-				}
-			},
-			function(error) {
-				var loadingTime = Date.now() - loadingStartTime;
-				console.error(`❌ ${modelOption.type.toUpperCase()} loading failed after ${loadingTime}ms:`);
-				console.error('Error type:', error.constructor.name);
-				console.error('Error message:', error.message);
-				console.error('📁 Failed file path:', modelOption.path);
-				
-				// Check if it's a simple 404 error
-				if (error.target && error.target.status === 404) {
-					console.error('🔍 FILE NOT FOUND (404):');
-					console.error('   The file does not exist at the specified path');
-					console.error('   Make sure the file is in the correct location');
-					console.error('   Expected location:', new URL(modelOption.path, window.location.href).href);
-				}
-				
-				// Specific Draco error analysis (only for compressed files)
-				if (modelOption.compressed) {
-					if (error.message && error.message.includes('slice')) {
-						console.error('🗜️ DRACO BINARY DATA ERROR DETECTED:');
-						console.error('   This usually means the binary data extraction failed');
-						console.error('   For GLTF text format, make sure you have:');
-						console.error('   - ' + modelOption.path.replace('.gltf', '.bin') + ' (binary data)');
-						console.error('   - All texture image files in the models/ folder');
-						console.error('   - Proper Draco compression in the export');
-					}
-					
-					if (error.message && error.message.includes('Draco')) {
-						console.error('🗜️ DRACO DECODER ERROR:');
-						console.error('   - Check if the Draco decoder scripts loaded correctly');
-						console.error('   - Verify the GLTF file was exported with Draco compression');
-						console.error('   - Make sure .bin file exists for GLTF text format');
-					}
-				}
-				
-				callback(false);
-			}
-		);
-	}
-	
-	function analyzeStandardResults(gltf) {
-		console.log('📦 === STANDARD GLTF ANALYSIS (No Compression) ===');
-		
-		var totalVertices = 0;
-		var totalTriangles = 0;
-		var meshCount = 0;
-		
-		if (gltf.scene) {
-			gltf.scene.traverse(function(child) {
-				if (child.isMesh && child.geometry) {
-					var geometry = child.geometry;
-					if (geometry.attributes.position) {
-						var vertices = geometry.attributes.position.count;
-						totalVertices += vertices;
-						
-						if (geometry.index) {
-							totalTriangles += geometry.index.count / 3;
-						} else {
-							totalTriangles += vertices / 3;
-						}
-						
-						meshCount++;
-						
-						console.log(`  Mesh: ${child.name || 'unnamed'}`);
-						console.log(`    Vertices: ${vertices}`);
-						console.log(`    Has normals: ${!!geometry.attributes.normal}`);
-						console.log(`    Has UVs: ${!!geometry.attributes.uv}`);
-						console.log(`    Has colors: ${!!geometry.attributes.color}`);
-						console.log(`    Indexed: ${!!geometry.index}`);
-					}
-				}
-			});
-		}
-		
-		console.log(`📊 Standard GLTF Results Summary:`);
-		console.log(`   Total meshes: ${meshCount}`);
-		console.log(`   Total vertices: ${totalVertices}`);
-		console.log(`   Total triangles: ${Math.round(totalTriangles)}`);
-		
-		if (totalVertices > 0) {
-			console.log('✅ Standard GLTF loading successful!');
-		} else {
-			console.warn('⚠️ No vertices found - loading may have failed');
-		}
-	}
-	
-	function analyzeDracoResults(gltf) {
-		console.log('🗜️ === DRACO COMPRESSION ANALYSIS ===');
-		
-		var totalVertices = 0;
-		var totalTriangles = 0;
-		var meshesWithDraco = 0;
-		
-		if (gltf.scene) {
-			gltf.scene.traverse(function(child) {
-				if (child.isMesh && child.geometry) {
-					var geometry = child.geometry;
-					if (geometry.attributes.position) {
-						var vertices = geometry.attributes.position.count;
-						totalVertices += vertices;
-						
-						if (geometry.index) {
-							totalTriangles += geometry.index.count / 3;
-						} else {
-							totalTriangles += vertices / 3;
-						}
-						
-						meshesWithDraco++;
-						
-						console.log(`  Mesh: ${child.name || 'unnamed'}`);
-						console.log(`    Vertices: ${vertices}`);
-						console.log(`    Has normals: ${!!geometry.attributes.normal}`);
-						console.log(`    Has UVs: ${!!geometry.attributes.uv}`);
-						console.log(`    Has colors: ${!!geometry.attributes.color}`);
-						console.log(`    Indexed: ${!!geometry.index}`);
-					}
-				}
-			});
-		}
-		
-		console.log(`📊 Draco Results Summary:`);
-		console.log(`   Total meshes: ${meshesWithDraco}`);
-		console.log(`   Total vertices: ${totalVertices}`);
-		console.log(`   Total triangles: ${Math.round(totalTriangles)}`);
-		
-		if (totalVertices > 0) {
-			console.log('✅ Draco decompression successful!');
-		} else {
-			console.warn('⚠️ No vertices found - Draco decompression may have failed');
-		}
-	}
-	
-	function loadOBJModelWithTextures(modelOption, callback) {
-		console.log('🔄 Loading OBJ model with MTL materials...');
-		
-		// Load MTL first
-		var mtlLoader = new THREE.MTLLoader();
-		mtlLoader.setPath('models/');
-		mtlLoader.load('ETERRY.mtl', 
-			function(materials) {
-				materials.preload();
-				console.log('✅ MTL materials loaded');
-				
-				// Load OBJ
-				var objLoader = new THREE.OBJLoader();
-				objLoader.setMaterials(materials);
-				objLoader.setPath('models/');
-				objLoader.load('ETERRY.obj',
-					function(group) {
-						console.log('✅ OBJ model loaded successfully');
-						
-						// Analyze OBJ materials
-						var materialCount = 0;
-						var textureCount = 0;
-						
-						group.traverse(function(child) {
-							if (child.isMesh && child.material) {
-								materialCount++;
-								if (child.material.map) {
-									textureCount++;
-									console.log('🎨 Found texture in OBJ material:', child.material.name);
-								}
-							}
-						});
-						
-						console.log(`📊 OBJ Analysis: ${materialCount} materials, ${textureCount} textures`);
-						
-						handleModelLoadedWithTextureAnalysis(group, { scene: group });
-						callback(true);
-					},
-					function(progress) {
-						if (progress.lengthComputable) {
-							var percent = Math.round(progress.loaded / progress.total * 100);
-							updateLoadingText(`Loading ${modelOption.name}: ${percent}%`);
-						}
-					},
-					function(error) {
-						console.error('❌ OBJ loading failed:', error);
-						callback(false);
-					}
-				);
-			},
-			function(progress) {
-				updateLoadingText('Loading materials...');
-			},
-			function(error) {
-				console.error('❌ MTL loading failed, trying OBJ without materials:', error);
-				
-				// Fallback: try OBJ without MTL
-				var objLoader = new THREE.OBJLoader();
-				objLoader.setPath('models/');
-				objLoader.load('ETERRY.obj',
-					function(group) {
-						console.log('✅ OBJ model loaded without materials');
-						handleModelLoadedWithTextureAnalysis(group, { scene: group });
-						callback(true);
-					},
-					function(progress) {
-						if (progress.lengthComputable) {
-							var percent = Math.round(progress.loaded / progress.total * 100);
-							updateLoadingText(`Loading ${modelOption.name}: ${percent}%`);
-						}
-					},
-					function(error) {
-						console.error('❌ OBJ loading failed completely:', error);
-						callback(false);
-					}
-				);
-			}
-		);
-	}
-	
-	function debugGLTFStructure(gltf) {
-		console.log('🔍 === COMPREHENSIVE GLTF STRUCTURE DEBUG ===');
-		
-		// Basic structure
-		console.log('📦 GLTF Root Properties:');
-		Object.keys(gltf).forEach(function(key) {
-			if (typeof gltf[key] === 'object' && gltf[key] !== null) {
-				if (Array.isArray(gltf[key])) {
-					console.log(`  ${key}: Array[${gltf[key].length}]`);
-				} else {
-					console.log(`  ${key}: Object (${Object.keys(gltf[key]).length} props)`);
-				}
-			} else {
-				console.log(`  ${key}: ${typeof gltf[key]}`);
-			}
-		});
-		
-		// Check for parser and userData which might contain texture info
-		if (gltf.parser && gltf.parser.json) {
-			var json = gltf.parser.json;
-			console.log('📄 GLTF JSON structure:');
-			console.log('- Asset:', json.asset);
-			console.log('- Scenes:', (json.scenes || []).length);
-			console.log('- Nodes:', (json.nodes || []).length);
-			console.log('- Meshes:', (json.meshes || []).length);
-			console.log('- Materials:', (json.materials || []).length);
-			console.log('- Textures:', (json.textures || []).length);
-			console.log('- Images:', (json.images || []).length);
-			console.log('- Samplers:', (json.samplers || []).length);
-			console.log('- Buffers:', (json.buffers || []).length);
-			console.log('- BufferViews:', (json.bufferViews || []).length);
-			console.log('- Accessors:', (json.accessors || []).length);
-			
-			// Debug images in detail
-			if (json.images && json.images.length > 0) {
-				console.log('🖼️ === IMAGES DETAILED ANALYSIS ===');
-				json.images.forEach(function(img, i) {
-					console.log(`  Image ${i}:`);
-					console.log(`    Name: ${img.name || 'unnamed'}`);
-					console.log(`    URI: ${img.uri || 'embedded'}`);
-					console.log(`    BufferView: ${img.bufferView !== undefined ? img.bufferView : 'none'}`);
-					console.log(`    MimeType: ${img.mimeType || 'unknown'}`);
-				});
-			} else {
-				console.warn('⚠️ No images found in GLTF JSON');
-			}
-			
-			// Debug textures in detail
-			if (json.textures && json.textures.length > 0) {
-				console.log('🎨 === TEXTURES DETAILED ANALYSIS ===');
-				json.textures.forEach(function(tex, i) {
-					console.log(`  Texture ${i}:`);
-					console.log(`    Name: ${tex.name || 'unnamed'}`);
-					console.log(`    Source (image index): ${tex.source}`);
-					console.log(`    Sampler: ${tex.sampler !== undefined ? tex.sampler : 'default'}`);
-					
-					// Cross-reference with images
-					if (tex.source !== undefined && json.images && json.images[tex.source]) {
-						var linkedImage = json.images[tex.source];
-						console.log(`    → Linked Image: ${linkedImage.name || 'unnamed'} (${linkedImage.uri || 'embedded'})`);
-					}
-				});
-			} else {
-				console.warn('⚠️ No textures found in GLTF JSON');
-			}
-			
-			// Debug materials in detail
-			if (json.materials && json.materials.length > 0) {
-				console.log('🎭 === MATERIALS DETAILED ANALYSIS ===');
-				json.materials.forEach(function(mat, i) {
-					console.log(`  Material ${i}: ${mat.name || 'unnamed'}`);
-					
-					if (mat.pbrMetallicRoughness) {
-						var pbr = mat.pbrMetallicRoughness;
-						console.log(`    PBR Material:`);
-						if (pbr.baseColorFactor) {
-							console.log(`      Base Color: [${pbr.baseColorFactor.join(', ')}]`);
-						}
-						if (pbr.baseColorTexture) {
-							console.log(`      Base Color Texture: ${pbr.baseColorTexture.index} (texCoord: ${pbr.baseColorTexture.texCoord || 0})`);
-						}
-						if (pbr.metallicRoughnessTexture) {
-							console.log(`      Metallic/Roughness Texture: ${pbr.metallicRoughnessTexture.index}`);
-						}
-						console.log(`      Metallic Factor: ${pbr.metallicFactor !== undefined ? pbr.metallicFactor : 1.0}`);
-						console.log(`      Roughness Factor: ${pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : 1.0}`);
-					}
-					
-					if (mat.normalTexture) {
-						console.log(`    Normal Texture: ${mat.normalTexture.index} (scale: ${mat.normalTexture.scale || 1.0})`);
-					}
-					if (mat.occlusionTexture) {
-						console.log(`    Occlusion Texture: ${mat.occlusionTexture.index} (strength: ${mat.occlusionTexture.strength || 1.0})`);
-					}
-					if (mat.emissiveTexture) {
-						console.log(`    Emissive Texture: ${mat.emissiveTexture.index}`);
-					}
-					if (mat.emissiveFactor) {
-						console.log(`    Emissive Factor: [${mat.emissiveFactor.join(', ')}]`);
-					}
-					
-					console.log(`    Alpha Mode: ${mat.alphaMode || 'OPAQUE'}`);
-					console.log(`    Double Sided: ${mat.doubleSided || false}`);
-				});
-			} else {
-				console.warn('⚠️ No materials found in GLTF JSON');
-			}
-			
-			// Check for extensions
-			if (json.extensionsUsed) {
-				console.log('🔌 Extensions Used:', json.extensionsUsed);
-			}
-			if (json.extensionsRequired) {
-				console.log('⚡ Extensions Required:', json.extensionsRequired);
-			}
-			
-			// Store for debugging display
-			document.getElementById('imageCount').textContent = (json.images || []).length;
-		} else {
-			console.warn('⚠️ No parser.json found - this might indicate a parsing issue');
-		}
-		
-		// Check if textures are in userData
-		if (gltf.userData) {
-			console.log('👤 GLTF userData:', gltf.userData);
-		}
-		
-		// Check scene structure
-		console.log('🌍 Scene Analysis:');
-		console.log(`  Children count: ${gltf.scene.children.length}`);
-		console.log(`  Scene type: ${gltf.scene.type}`);
-		
-		// Deep analysis of scene content
-		var totalMeshes = 0;
-		var totalMaterials = 0;
-		gltf.scene.traverse(function(child) {
-			if (child.isMesh) {
-				totalMeshes++;
-				if (child.material) {
-					if (Array.isArray(child.material)) {
-						totalMaterials += child.material.length;
-					} else {
-						totalMaterials++;
-					}
-				}
-			}
-		});
-		
-		console.log(`  Total meshes in scene: ${totalMeshes}`);
-		console.log(`  Total materials in scene: ${totalMaterials}`);
-		
-		console.log('🔍 === END GLTF DEBUG ===');
-	}
-	
-	function handleModelLoadedWithTextureAnalysis(model, gltf) {
-		console.log('🎉 Processing loaded model with comprehensive texture analysis...');
-		
-		// Remove any existing model
-		if (currentModel) {
-			markerRoot1.remove(currentModel);
-		}
-		
-		currentModel = model;
-		
-		// Reset debug counters
-		var meshCount = 0;
-		var materialCount = 0;
-		var textureCount = 0;
-		var totalVertices = 0;
-		debugTextureInfo = [];
-		loadedTextures = [];
-		
-		// Deep traverse and analyze every object
-		model.traverse(function(child) {
-			console.log('🔍 Analyzing object:', child.type, child.name || 'unnamed');
-			
-			if (child.isMesh) {
-				meshCount++;
-				
-				var vertices = child.geometry.attributes.position ? 
-					child.geometry.attributes.position.count : 0;
-				totalVertices += vertices;
-				
-				console.log(`  📐 Mesh ${meshCount}: ${vertices} vertices`);
-				
-				// Analyze materials in detail
-				if (child.material) {
-					if (Array.isArray(child.material)) {
-						// Multiple materials
-						child.material.forEach(function(mat, index) {
-							materialCount++;
-							analyzeMaterial(mat, `${child.name || 'mesh'}_${index}`);
-						});
-					} else {
-						// Single material
-						materialCount++;
-						analyzeMaterial(child.material, child.name || 'mesh');
-					}
-				} else {
-					console.warn('  ⚠️ Mesh has no material!');
-					// Create a basic material with a bright color to make it visible
-					child.material = new THREE.MeshStandardMaterial({
-						color: 0xff0000, // Bright red for debugging
-						roughness: 0.7,
-						metalness: 0.1
-					});
-					materialCount++;
-				}
-				
-				// Ensure geometry is properly set up
-				if (child.geometry) {
-					// Check for UV coordinates
-					if (child.geometry.attributes.uv) {
-						console.log(`  📍 UV coordinates: ${child.geometry.attributes.uv.count} points`);
-					} else {
-						console.warn('  ⚠️ No UV coordinates found!');
-					}
-					
-					child.geometry.computeBoundingSphere();
-					if (!child.geometry.attributes.normal) {
-						child.geometry.computeVertexNormals();
-						console.log('  🔧 Computed vertex normals');
-					}
-				}
-			}
-		});
-		
-		// Try to manually extract and apply textures if none were found
-		if (textureCount === 0) {
-			console.log('🔧 No textures found, attempting manual extraction...');
-			attemptManualTextureExtraction(gltf, model);
-		}
-		
-		// Position the model appropriately for AR
-		model.position.set(0, 0, 0);
-		model.rotation.set(0, 0, 0);
-		model.scale.set(1, 1, 1);
-		
-		// Add to AR marker
-		markerRoot1.add(model);
-		
-		// Update debug info
-		updateDebugInfo(meshCount, materialCount, textureCount);
-		updateTextureDebugDisplay();
-		
-		console.log(`🎯 Model processed: ${meshCount} meshes, ${materialCount} materials, ${textureCount} textures, ${totalVertices} vertices`);
-		
-		// Force a render update
-		renderer.render(scene, camera);
-	}
-	
-	function analyzeMaterial(material, objectName) {
-		console.log(`  🎨 Material analysis for ${objectName}:`);
-		console.log(`    Type: ${material.type}`);
-		console.log(`    Name: ${material.name || 'unnamed'}`);
-		console.log(`    Color: #${material.color ? material.color.getHexString() : 'undefined'}`);
-		
-		var materialTextures = 0;
-		var textureInfo = {
-			object: objectName,
-			material: material.name || 'unnamed',
-			textures: []
-		};
-		
-		// Check all possible texture slots
-		var textureSlots = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap', 'bumpMap', 'displacementMap'];
-		
-		textureSlots.forEach(function(slot) {
-			if (material[slot]) {
-				materialTextures++;
-				console.log(`    ✅ ${slot}: Found`);
-				
-				var texture = material[slot];
-				textureInfo.textures.push({
-					type: slot,
-					image: texture.image ? (texture.image.src || 'embedded') : 'no image',
-					format: texture.format,
-					type: texture.type,
-					needsUpdate: texture.needsUpdate
-				});
-				
-				// Force texture update
-				texture.needsUpdate = true;
-				
-				// Enhance texture settings
-				texture.flipY = false; // GLTF standard
-				texture.generateMipmaps = true;
-				texture.minFilter = THREE.LinearMipmapLinearFilter;
-				texture.magFilter = THREE.LinearFilter;
-				
-				loadedTextures.push(texture);
-			} else {
-				console.log(`    ❌ ${slot}: Not found`);
-			}
-		});
-		
-		if (materialTextures > 0) {
-			debugTextureInfo.push(textureInfo);
-		}
-		
-		// Enhance material for better lighting
-		if (material.isMeshBasicMaterial) {
-			console.log('    🔄 Converting BasicMaterial to StandardMaterial');
-			var newMaterial = new THREE.MeshStandardMaterial();
-			
-			// Copy properties
-			newMaterial.color.copy(material.color);
-			newMaterial.map = material.map;
-			newMaterial.transparent = material.transparent;
-			newMaterial.opacity = material.opacity;
-			newMaterial.side = material.side;
-			
-			// Add PBR properties
-			newMaterial.roughness = 0.7;
-			newMaterial.metalness = 0.1;
-			
-			// Replace the material
-			material = newMaterial;
-		}
-		
-		// Force material updates
-		material.side = THREE.DoubleSide;
-		material.needsUpdate = true;
-		
-		return materialTextures;
-	}
-	
-	function attemptManualTextureExtraction(gltf, model) {
-		console.log('🔧 Attempting manual texture extraction...');
-		
-		// Try to access parser data
-		if (gltf.parser && gltf.parser.json) {
-			var json = gltf.parser.json;
-			
-			// If we have images but no textures on materials, create them manually
-			if (json.images && json.images.length > 0) {
-				console.log('📦 Found images in GLTF, creating manual textures...');
-				
-				json.images.forEach(function(imageData, index) {
-					console.log(`🖼️ Processing image ${index}:`, imageData);
-					
-					// Create texture from image data
-					var texture = createTextureFromGLTFImage(imageData, gltf.parser, index);
-					if (texture) {
-						// Apply texture to first material found without a texture
-						applyTextureToMaterial(texture, model, `manual_${index}`);
-					}
-				});
-			}
-		}
-		
-		// Fallback: Create a test texture pattern
-		if (loadedTextures.length === 0) {
-			console.log('🎨 Creating test texture pattern...');
-			createTestTexture(model);
-		}
-	}
-	
-	function createTextureFromGLTFImage(imageData, parser, index) {
-		try {
-			var texture = new THREE.Texture();
-			
-			if (imageData.uri) {
-				// External image
-				var loader = new THREE.TextureLoader();
-				texture = loader.load(imageData.uri, function(loadedTexture) {
-					console.log(`✅ Loaded external texture: ${imageData.uri}`);
-				});
-			} else if (imageData.bufferView !== undefined) {
-				// Embedded image
-				console.log('🔧 Processing embedded image...');
-				
-				// This would require access to the binary data
-				// For now, create a placeholder
-				var canvas = document.createElement('canvas');
-				canvas.width = 256;
-				canvas.height = 256;
-				var ctx = canvas.getContext('2d');
-				
-				// Create a colorful pattern
-				ctx.fillStyle = '#4CAF50';
-				ctx.fillRect(0, 0, 256, 256);
-				ctx.fillStyle = '#2196F3';
-				ctx.fillRect(0, 0, 128, 128);
-				ctx.fillStyle = '#FF9800';
-				ctx.fillRect(128, 128, 128, 128);
-				
-				texture = new THREE.CanvasTexture(canvas);
-			}
-			
-			// Configure texture
-			texture.flipY = false;
-			texture.generateMipmaps = true;
-			texture.needsUpdate = true;
-			
-			return texture;
-		} catch (error) {
-			console.error('❌ Failed to create texture:', error);
-			return null;
-		}
-	}
-	
-	function applyTextureToMaterial(texture, model, textureName) {
-		var applied = false;
-		
-		model.traverse(function(child) {
-			if (child.isMesh && child.material && !applied) {
-				if (Array.isArray(child.material)) {
-					child.material.forEach(function(mat) {
-						if (!mat.map) {
-							mat.map = texture;
-							mat.needsUpdate = true;
-							console.log(`✅ Applied ${textureName} to material: ${mat.name}`);
-							applied = true;
-						}
-					});
-				} else if (!child.material.map) {
-					child.material.map = texture;
-					child.material.needsUpdate = true;
-					console.log(`✅ Applied ${textureName} to material: ${child.material.name}`);
-					applied = true;
-				}
-			}
-		});
-		
-		if (applied) {
-			loadedTextures.push(texture);
-		}
-	}
-	
-	function createTestTexture(model) {
-		// Create a test texture to verify the system works
-		var canvas = document.createElement('canvas');
-		canvas.width = 512;
-		canvas.height = 512;
-		var ctx = canvas.getContext('2d');
-		
-		// Create a checkerboard pattern
-		for (var x = 0; x < 8; x++) {
-			for (var y = 0; y < 8; y++) {
-				ctx.fillStyle = (x + y) % 2 === 0 ? '#FF6B6B' : '#4ECDC4';
-				ctx.fillRect(x * 64, y * 64, 64, 64);
-			}
-		}
-		
-		// Add text
-		ctx.fillStyle = 'white';
-		ctx.font = 'bold 48px Arial';
-		ctx.textAlign = 'center';
-		ctx.fillText('E-TERRY', 256, 280);
-		
-		var testTexture = new THREE.CanvasTexture(canvas);
-		testTexture.needsUpdate = true;
-		
-		// Apply to all materials
-		var texturesApplied = 0;
-		model.traverse(function(child) {
-			if (child.isMesh && child.material) {
-				if (Array.isArray(child.material)) {
-					child.material.forEach(function(mat) {
-						mat.map = testTexture;
-						mat.needsUpdate = true;
-						texturesApplied++;
-					});
-				} else {
-					child.material.map = testTexture;
-					child.material.needsUpdate = true;
-					texturesApplied++;
-				}
-			}
-		});
-		
-		console.log(`🎨 Applied test texture to ${texturesApplied} materials`);
-		loadedTextures.push(testTexture);
-		
-		updateDebugInfo();
-	}
-	
-	// Animation loop
-	function animate() {
-		requestAnimationFrame(animate);
-		
-		// Update AR
-		if (arToolkitSource && arToolkitSource.ready !== false) {
-			arToolkitContext.update(arToolkitSource.domElement);
-		}
-		
-		// Render
-		renderer.render(scene, camera);
-	}
-	
-	// Start animation loop
-	animate();
-	
-	// Utility functions
-	function updateLoadingText(text) {
-		var loadingText = document.getElementById('loadingText');
-		if (loadingText) loadingText.textContent = text;
-	}
-	
-	function updateStatus(text, type) {
-		var statusBar = document.getElementById('statusBar');
-		var statusText = document.getElementById('statusText');
-		
-		if (statusText) statusText.textContent = text;
-		if (statusBar) {
-			statusBar.className = '';
-			if (type === 'success') statusBar.classList.add('status-success');
-			else if (type === 'warning') statusBar.classList.add('status-warning');
-			else if (type === 'error') statusBar.classList.add('status-error');
-			statusBar.style.display = 'block';
-		}
-		
-		console.log(`📊 Status: ${text}`);
-	}
-	
-	function updateDebugInfo(meshes, materials, textures) {
-		document.getElementById('meshCount').textContent = meshes || 0;
-		document.getElementById('materialCount').textContent = materials || 0;
-		document.getElementById('textureCount').textContent = loadedTextures.length;
-	}
-	
-	function updateTextureDebugDisplay() {
-		var debugDiv = document.getElementById('textureDebug');
-		if (loadedTextures.length === 0) {
-			debugDiv.innerHTML = 'No textures loaded - check console for details';
-		} else {
-			var debugText = `${loadedTextures.length} texture(s) loaded:<br>`;
-			debugTextureInfo.forEach(function(info, index) {
-				debugText += `• ${info.object}: ${info.textures.length} texture(s)<br>`;
-			});
-			debugDiv.innerHTML = debugText;
-		}
-	}
-	
-	function hideLoadingScreen() {
-		var loadingScreen = document.getElementById('loadingScreen');
-		if (loadingScreen) {
-			loadingScreen.style.opacity = '0';
-			loadingScreen.style.transition = 'opacity 0.5s ease';
-			setTimeout(function() {
-				loadingScreen.style.display = 'none';
-			}, 500);
-		}
-	}
-	
-	// Error handling
-	window.addEventListener('error', function(e) {
-		console.error('💥 JavaScript Error:', e.error);
-		updateStatus('Application error occurred', 'error');
-	});
-	
-	console.log('🚀 E-TERRY AR Application initialized - DRACO COMPRESSED MODELS ONLY with HD camera');
-}
-</script>
+        <div class="debug-section">
+            <div class="debug-header">📊 Model Stats</div>
+            <div class="debug-row">
+                <span class="debug-label">Meshes:</span>
+                <span class="debug-value" id="meshCount">0</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Materials:</span>
+                <span class="debug-value" id="materialCount">0</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Textures:</span>
+                <span class="debug-value" id="textureCount">0</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Vertices:</span>
+                <span class="debug-value" id="vertexCount">0</span>
+            </div>
+        </div>
 
+        <div class="debug-section">
+            <div class="debug-header">📷 Camera</div>
+            <div class="debug-row">
+                <span class="debug-label">Resolution:</span>
+                <span class="debug-value" id="cameraInfo">Initializing...</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Status:</span>
+                <span class="debug-value" id="cameraStatus">Starting...</span>
+            </div>
+        </div>
+
+        <div class="debug-section">
+            <div class="debug-header">🎯 AR Tracking</div>
+            <div class="debug-row">
+                <span class="debug-label">Marker:</span>
+                <span class="debug-value" id="markerStatus">Loading...</span>
+            </div>
+            <div class="debug-row">
+                <span class="debug-label">Tracking:</span>
+                <span class="debug-value" id="trackingStatus">Inactive</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modern AR application using updated libraries
+        class ModernETERRYAR {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.clock = null;
+                this.arToolkitSource = null;
+                this.arToolkitContext = null;
+                this.markerRoot = null;
+                this.currentModel = null;
+                this.loadedTextures = [];
+                this.stats = {
+                    meshes: 0,
+                    materials: 0,
+                    textures: 0,
+                    vertices: 0
+                };
+
+                // Model configuration - prioritize Draco compressed formats
+                this.modelOptions = [
+                    {
+                        name: 'E-TERRY Compressed GLTF',
+                        path: 'models/ETERRY_compressed.gltf',
+                        type: 'gltf',
+                        compressed: true
+                    },
+                    {
+                        name: 'E-TERRY Compressed GLB',
+                        path: 'models/ETERRY_compressed.glb',
+                        type: 'glb',
+                        compressed: true
+                    },
+                    {
+                        name: 'E-TERRY Standard GLB (Fallback)',
+                        path: 'models/ETERRY.glb',
+                        type: 'glb',
+                        compressed: false
+                    }
+                ];
+
+                this.init();
+            }
+
+            async init() {
+                try {
+                    console.log('🚀 Initializing Modern E-TERRY AR');
+                    
+                    this.updateProgress(0, 'Setting up 3D environment...');
+                    await this.setupScene();
+                    
+                    this.updateProgress(25, 'Configuring camera...');
+                    await this.setupAR();
+                    
+                    this.updateProgress(50, 'Loading compressed models...');
+                    await this.loadModel();
+                    
+                    this.updateProgress(100, 'Ready!');
+                    setTimeout(() => this.hideLoadingScreen(), 1000);
+
+                } catch (error) {
+                    console.error('❌ Initialization failed:', error);
+                    this.showError('Failed to initialize AR', error.message);
+                }
+            }
+
+            updateProgress(percent, text) {
+                const progressBar = document.getElementById('progressBar');
+                const loadingText = document.getElementById('loadingText');
+                
+                if (progressBar) progressBar.style.width = `${percent}%`;
+                if (loadingText) loadingText.textContent = text;
+            }
+
+            async setupScene() {
+                // Create scene with modern Three.js
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.Camera();
+                this.scene.add(this.camera);
+
+                // Setup renderer with modern settings
+                this.renderer = new THREE.WebGLRenderer({
+                    antialias: true,
+                    alpha: true,
+                    preserveDrawingBuffer: false,
+                    powerPreference: "high-performance"
+                });
+
+                this.renderer.setClearColor(new THREE.Color('lightgrey'), 0);
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                
+                // Modern renderer settings
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.2;
+                this.renderer.shadowMap.enabled = false; // Disabled for AR performance
+
+                document.body.appendChild(this.renderer.domElement);
+                this.clock = new THREE.Clock();
+
+                // Setup enhanced lighting
+                this.setupLighting();
+
+                // Handle window resize
+                window.addEventListener('resize', () => this.onWindowResize());
+                
+                console.log('✅ Scene setup complete');
+            }
+
+            setupLighting() {
+                // Enhanced lighting for better model visibility
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+                this.scene.add(ambientLight);
+
+                const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+                directionalLight1.position.set(2, 3, 1);
+                this.scene.add(directionalLight1);
+
+                const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
+                directionalLight2.position.set(-2, -1, -1);
+                this.scene.add(directionalLight2);
+
+                const pointLight = new THREE.PointLight(0xffffff, 0.8, 10);
+                pointLight.position.set(0, 3, 3);
+                this.scene.add(pointLight);
+
+                console.log('✨ Enhanced lighting configured');
+            }
+
+            async setupAR() {
+                return new Promise((resolve, reject) => {
+                    // Initialize AR source with modern settings
+                    this.arToolkitSource = new THREEx.ArToolkitSource({
+                        sourceType: 'webcam',
+                        sourceWidth: 1280,
+                        sourceHeight: 720,
+                        displayWidth: window.innerWidth,
+                        displayHeight: window.innerHeight
+                    });
+
+                    this.arToolkitSource.init(
+                        () => {
+                            console.log('📷 Camera initialized');
+                            this.updateCameraInfo();
+                            this.onResize();
+                            
+                            // Setup AR context
+                            this.arToolkitContext = new THREEx.ArToolkitContext({
+                                cameraParametersUrl: 'data/camera_para.dat',
+                                detectionMode: 'mono',
+                                maxDetectionRate: 60,
+                                canvasWidth: 1280,
+                                canvasHeight: 720
+                            });
+
+                            this.arToolkitContext.init(() => {
+                                this.camera.projectionMatrix.copy(
+                                    this.arToolkitContext.getProjectionMatrix()
+                                );
+                                console.log('🎯 AR context ready');
+                                this.setupMarker();
+                                resolve();
+                            });
+                        },
+                        (error) => {
+                            console.error('❌ Camera initialization failed:', error);
+                            document.getElementById('cameraError').style.display = 'block';
+                            reject(error);
+                        }
+                    );
+                });
+            }
+
+            updateCameraInfo() {
+                const video = this.arToolkitSource.domElement;
+                if (video && video.videoWidth && video.videoHeight) {
+                    const resolution = `${video.videoWidth}x${video.videoHeight}`;
+                    document.getElementById('cameraInfo').textContent = resolution;
+                    document.getElementById('cameraStatus').textContent = 'Active';
+                }
+            }
+
+            setupMarker() {
+                this.markerRoot = new THREE.Group();
+                this.scene.add(this.markerRoot);
+
+                new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
+                    type: 'pattern',
+                    patternUrl: 'data/eterry-logo.patt',
+                    changeMatrixMode: 'cameraTransformMatrix'
+                });
+
+                // Add visual marker indicator
+                const geometry = new THREE.PlaneGeometry(1, 1);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0x0000ff,
+                    opacity: 0.1,
+                    transparent: true
+                });
+                const plane = new THREE.Mesh(geometry, material);
+                plane.rotation.x = -Math.PI / 2;
+                this.markerRoot.add(plane);
+
+                document.getElementById('markerStatus').textContent = 'Ready';
+                console.log('🎯 Marker tracking configured');
+            }
+
+            async loadModel() {
+                console.log('🤖 Starting model loading with Draco support...');
+                
+                // Verify Draco support
+                if (typeof THREE.DRACOLoader === 'undefined') {
+                    throw new Error('DRACOLoader not available');
+                }
+
+                document.getElementById('formatInfo').textContent = 'Draco Supported';
+
+                // Try loading models in order of preference
+                for (let i = 0; i < this.modelOptions.length; i++) {
+                    const option = this.modelOptions[i];
+                    console.log(`📦 Attempting: ${option.name}`);
+                    
+                    try {
+                        const success = await this.tryLoadGLTF(option);
+                        if (success) {
+                            this.updateStatus(`Loaded: ${option.name}`, 'success');
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn(`⚠️ Failed to load ${option.name}:`, error.message);
+                    }
+                }
+
+                throw new Error('All model loading attempts failed');
+            }
+
+            async tryLoadGLTF(modelOption) {
+                return new Promise((resolve, reject) => {
+                    const loader = new THREE.GLTFLoader();
+
+                    // Setup Draco loader for compressed models
+                    if (modelOption.compressed) {
+                        const dracoLoader = new THREE.DRACOLoader();
+                        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                        dracoLoader.setDecoderConfig({ type: 'js' });
+                        loader.setDRACOLoader(dracoLoader);
+                        
+                        document.getElementById('compressionInfo').textContent = 'Draco Active';
+                        console.log('🗜️ Draco decoder configured');
+                    } else {
+                        document.getElementById('compressionInfo').textContent = 'Standard';
+                    }
+
+                    const startTime = Date.now();
+
+                    loader.load(
+                        modelOption.path,
+                        (gltf) => {
+                            const loadTime = Date.now() - startTime;
+                            console.log(`✅ Model loaded in ${loadTime}ms`);
+                            
+                            this.processLoadedModel(gltf, modelOption);
+                            resolve(true);
+                        },
+                        (progress) => {
+                            if (progress.lengthComputable) {
+                                const percent = Math.round((progress.loaded / progress.total) * 100);
+                                const loaded = Math.round(progress.loaded / 1024);
+                                const total = Math.round(progress.total / 1024);
+                                this.updateProgress(
+                                    50 + (percent * 0.4), 
+                                    `Loading ${modelOption.name}: ${percent}% (${loaded}KB/${total}KB)`
+                                );
+                            }
+                        },
+                        (error) => {
+                            console.error(`❌ Loading failed:`, error);
+                            reject(error);
+                        }
+                    );
+                });
+            }
+
+            processLoadedModel(gltf, modelOption) {
+                console.log('🎉 Processing loaded model...');
+
+                // Remove existing model
+                if (this.currentModel) {
+                    this.markerRoot.remove(this.currentModel);
+                }
+
+                this.currentModel = gltf.scene;
+                this.resetStats();
+
+                // Analyze model
+                this.analyzeModel(gltf.scene);
+
+                // Process materials and textures
+                this.processMaterials(gltf.scene);
+
+                // Position model for AR
+                this.currentModel.position.set(0, 0, 0);
+                this.currentModel.rotation.set(0, 0, 0);
+                this.currentModel.scale.set(1, 1, 1);
+
+                // Add to marker
+                this.markerRoot.add(this.currentModel);
+
+                // Update UI
+                this.updateDebugDisplay();
+                this.startAnimation();
+
+                console.log(`✅ Model processed: ${this.stats.meshes} meshes, ${this.stats.materials} materials, ${this.stats.textures} textures`);
+            }
+
+            resetStats() {
+                this.stats = { meshes: 0, materials: 0, textures: 0, vertices: 0 };
+                this.loadedTextures = [];
+            }
+
+            analyzeModel(model) {
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        this.stats.meshes++;
+                        
+                        if (child.geometry && child.geometry.attributes.position) {
+                            this.stats.vertices += child.geometry.attributes.position.count;
+                        }
+
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                this.stats.materials += child.material.length;
+                            } else {
+                                this.stats.materials++;
+                            }
+                        }
+                    }
+                });
+            }
+
+            processMaterials(model) {
+                model.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        const materials = Array.isArray(child.material) ? child.material : [child.material];
+                        
+                        materials.forEach((material) => {
+                            // Count textures
+                            const textureSlots = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'];
+                            textureSlots.forEach((slot) => {
+                                if (material[slot]) {
+                                    this.stats.textures++;
+                                    this.loadedTextures.push(material[slot]);
+                                    
+                                    // Optimize texture settings
+                                    material[slot].flipY = false;
+                                    material[slot].generateMipmaps = true;
+                                    material[slot].needsUpdate = true;
+                                }
+                            });
+
+                            // Enhance material properties
+                            material.side = THREE.DoubleSide;
+                            material.needsUpdate = true;
+                        });
+                    }
+                });
+            }
+
+            updateDebugDisplay() {
+                document.getElementById('meshCount').textContent = this.stats.meshes;
+                document.getElementById('materialCount').textContent = this.stats.materials;
+                document.getElementById('textureCount').textContent = this.stats.textures;
+                document.getElementById('vertexCount').textContent = this.stats.vertices.toLocaleString();
+            }
+
+            startAnimation() {
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    
+                    // Update AR
+                    if (this.arToolkitSource && this.arToolkitSource.ready !== false) {
+                        this.arToolkitContext.update(this.arToolkitSource.domElement);
+                    }
+                    
+                    // Render
+                    this.renderer.render(this.scene, this.camera);
+                };
+                
+                animate();
+                console.log('🎬 Animation loop started');
+            }
+
+            onResize() {
+                if (this.arToolkitSource) {
+                    this.arToolkitSource.onResizeElement();
+                    this.arToolkitSource.copyElementSizeTo(this.renderer.domElement);
+                    
+                    if (this.arToolkitContext && this.arToolkitContext.arController) {
+                        this.arToolkitSource.copyElementSizeTo(this.arToolkitContext.arController.canvas);
+                    }
+                }
+            }
+
+            onWindowResize() {
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.onResize();
+            }
+
+            updateStatus(text, type = 'info') {
+                const statusBar = document.getElementById('statusBar');
+                const statusText = document.getElementById('statusText');
+                
+                if (statusText) statusText.textContent = text;
+                if (statusBar) {
+                    statusBar.className = '';
+                    statusBar.classList.add(`status-${type}`);
+                    statusBar.style.display = 'block';
+                }
+                
+                console.log(`📊 Status: ${text}`);
+            }
+
+            showError(title, message) {
+                this.updateStatus(`Error: ${title}`, 'error');
+                console.error(`❌ ${title}: ${message}`);
+                
+                // Update loading screen with error
+                const loadingText = document.getElementById('loadingText');
+                if (loadingText) {
+                    loadingText.textContent = `Error: ${title}`;
+                    loadingText.style.color = '#ff6b6b';
+                }
+            }
+
+            hideLoadingScreen() {
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    loadingScreen.style.transition = 'opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 800);
+                }
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            // Small delay to ensure all scripts are loaded
+            setTimeout(() => {
+                new ModernETERRYAR();
+            }, 500);
+        });
+
+        // Global error handling
+        window.addEventListener('error', (e) => {
+            console.error('💥 JavaScript Error:', e.error);
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('💥 Unhandled Promise Rejection:', e.reason);
+        });
+    </script>
 </body>
 </html>

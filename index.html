@@ -420,7 +420,7 @@
                         console.log('📷 AR camera ready');
                         document.getElementById('cameraStatus').textContent = 'Active';
                         this.updateCameraInfo();
-                        this.onResize();
+                        // Don't call onResize here - wait for context to be ready
                         
                         // SIMPLIFIED AR context - EXACTLY like working code
                         this.arToolkitContext = new THREEx.ArToolkitContext({
@@ -433,6 +433,8 @@
                                 this.arToolkitContext.getProjectionMatrix()
                             );
                             console.log('🎯 AR tracking ready');
+                            // NOW it's safe to call onResize
+                            this.onResize();
                             this.setupMarker();
                             resolve();
                         });
@@ -634,7 +636,7 @@
                     this.arToolkitSource.onResize();
                     this.arToolkitSource.copySizeTo(this.renderer.domElement);
                     
-                    if (this.arToolkitContext.arController !== null) {
+                    if (this.arToolkitContext && this.arToolkitContext.arController !== null) {
                         this.arToolkitSource.copySizeTo(this.arToolkitContext.arController.canvas);
                     }
                 }

@@ -653,19 +653,50 @@
                 this.markerRoot = new THREE.Group();
                 this.scene.add(this.markerRoot);
 
-                new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
+                // Create marker controls
+                this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
                     type: 'pattern',
                     patternUrl: 'data/eterry-logo.patt',
                     changeMatrixMode: 'cameraTransformMatrix',
                     // Mobile optimization
                     smooth: true,
-                    smoothCount: 10,
+                    smoothCount: 5,
                     smoothTolerance: 0.01,
                     smoothThreshold: 2
                 });
 
+                // Add visual marker reference (helps with positioning)
+                this.addMarkerVisuals();
+
                 document.getElementById('markerStatus').textContent = 'Mobile Ready';
                 console.log('🎯 Mobile marker tracking configured');
+            }
+
+            addMarkerVisuals() {
+                // Create a coordinate system helper to visualize marker position
+                const axesHelper = new THREE.AxesHelper(0.5);
+                this.markerRoot.add(axesHelper);
+
+                // Add a semi-transparent plane to show marker bounds
+                const markerGeometry = new THREE.PlaneGeometry(1, 1);
+                const markerMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00,
+                    opacity: 0.3,
+                    transparent: true,
+                    side: THREE.DoubleSide
+                });
+                const markerPlane = new THREE.Mesh(markerGeometry, markerMaterial);
+                markerPlane.rotation.x = -Math.PI / 2; // Lay flat
+                this.markerRoot.add(markerPlane);
+
+                // Add a small cube at center for reference
+                const cubeGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+                const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                const centerCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                centerCube.position.set(0, 0.05, 0); // Slightly above marker
+                this.markerRoot.add(centerCube);
+
+                console.log('✅ Marker visuals added for debugging');
             }
 
             async loadModel() {
@@ -748,8 +779,11 @@
             createMobileTestModel() {
                 console.log('🎨 Creating mobile test model...');
                 
+                // Create a test group to ensure proper positioning
+                const testGroup = new THREE.Group();
+                
                 // Simple colorful cube for mobile
-                const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const geometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
                 const material = new THREE.MeshLambertMaterial({ 
                     color: 0x4CAF50,
                     transparent: true,
@@ -757,23 +791,41 @@
                 });
                 
                 const cube = new THREE.Mesh(geometry, material);
-                cube.position.set(0, 0.25, 0);
+                cube.position.set(0, 0.15, 0); // Half the height above marker
+                testGroup.add(cube);
                 
-                this.markerRoot.add(cube);
-                this.currentModel = cube;
+                // Add text or additional visual elements
+                const textGeometry = new THREE.RingGeometry(0.1, 0.2, 8);
+                const textMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xFF5722,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(textGeometry, textMaterial);
+                ring.position.set(0, 0.4, 0);
+                ring.rotation.x = Math.PI / 2;
+                testGroup.add(ring);
+                
+                // Position the test group properly on marker
+                this.positionModelOnMarker(testGroup);
+                
+                // Add to marker
+                this.markerRoot.add(testGroup);
+                this.currentModel = testGroup;
                 
                 // Simple animation
                 const animate = () => {
-                    if (cube) {
-                        cube.rotation.y += 0.01;
+                    if (testGroup) {
+                        cube.rotation.y += 0.02;
+                        ring.rotation.z += 0.01;
                     }
                 };
                 
-                this.stats = { meshes: 1, materials: 1, textures: 0, vertices: 8 };
+                this.stats = { meshes: 2, materials: 2, textures: 0, vertices: 16 };
                 this.updateDebugDisplay();
                 this.startAnimation(animate);
                 
-                this.updateStatus('Mobile test model ready', 'success');
+                this.updateStatus('Mobile test model ready - positioned on marker', 'success');
+                console.log('✅ Test model created and positioned on marker');
             }
 
             processLoadedModel(gltf, modelOption) {
@@ -790,16 +842,56 @@
                 this.optimizeForMobile(gltf.scene);
                 this.analyzeModel(gltf.scene);
 
-                // Scale for mobile viewing
-                this.currentModel.position.set(0, 0, 0);
-                this.currentModel.rotation.set(0, 0, 0);
-                this.currentModel.scale.set(0.8, 0.8, 0.8); // Slightly smaller for mobile
+                // CRITICAL: Proper positioning for AR marker
+                this.positionModelOnMarker(this.currentModel);
 
+                // Add to marker (this is the key!)
                 this.markerRoot.add(this.currentModel);
                 this.updateDebugDisplay();
                 this.startAnimation();
 
-                console.log(`✅ Mobile model processed: ${this.stats.meshes} meshes`);
+                console.log(`✅ Mobile model positioned on marker: ${this.stats.meshes} meshes`);
+                console.log(`📍 Model position: x=${this.currentModel.position.x}, y=${this.currentModel.position.y}, z=${this.currentModel.position.z}`);
+                console.log(`📏 Model scale: x=${this.currentModel.scale.x}, y=${this.currentModel.scale.y}, z=${this.currentModel.scale.z}`);
+            }
+
+            positionModelOnMarker(model) {
+                // Reset any existing transforms
+                model.position.set(0, 0, 0);
+                model.rotation.set(0, 0, 0);
+                model.scale.set(1, 1, 1);
+
+                // Calculate model bounds
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+
+                console.log('📦 Model bounds:', {
+                    size: { x: size.x.toFixed(3), y: size.y.toFixed(3), z: size.z.toFixed(3) },
+                    center: { x: center.x.toFixed(3), y: center.y.toFixed(3), z: center.z.toFixed(3) }
+                });
+
+                // Center the model
+                model.position.x = -center.x;
+                model.position.y = -center.y;
+                model.position.z = -center.z;
+
+                // Position above the marker (so it doesn't clip through)
+                model.position.y = Math.max(0, size.y / 2);
+
+                // Scale to fit marker (optional - adjust as needed)
+                const maxDimension = Math.max(size.x, size.z);
+                if (maxDimension > 0.8) { // If larger than 80% of marker
+                    const scale = 0.8 / maxDimension;
+                    model.scale.setScalar(scale);
+                    console.log(`📏 Model scaled by ${scale.toFixed(3)} to fit marker`);
+                }
+
+                // Make sure model faces the right direction (optional)
+                // model.rotation.y = Math.PI; // Uncomment if model is backwards
+
+                console.log(`📍 Final model position: (${model.position.x.toFixed(3)}, ${model.position.y.toFixed(3)}, ${model.position.z.toFixed(3)})`);
+                console.log(`📏 Final model scale: (${model.scale.x.toFixed(3)}, ${model.scale.y.toFixed(3)}, ${model.scale.z.toFixed(3)})`);
             }
 
             optimizeForMobile(model) {
@@ -881,9 +973,20 @@
                     if (this.arToolkitSource && this.arToolkitSource.ready !== false) {
                         this.arToolkitContext.update(this.arToolkitSource.domElement);
                         
-                        // Update tracking status
+                        // Update tracking status with more detail
                         if (this.markerRoot.visible) {
-                            document.getElementById('trackingStatus').textContent = 'Active';
+                            document.getElementById('trackingStatus').textContent = 'Active ✓';
+                            
+                            // Log marker position for debugging
+                            if (this.currentModel) {
+                                const worldPos = new THREE.Vector3();
+                                this.markerRoot.getWorldPosition(worldPos);
+                                
+                                // Only log occasionally to avoid spam
+                                if (Math.random() < 0.01) { // 1% chance per frame
+                                    console.log(`🎯 Marker world position: (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`);
+                                }
+                            }
                         } else {
                             document.getElementById('trackingStatus').textContent = 'Searching...';
                         }

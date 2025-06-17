@@ -10,9 +10,8 @@
     <!-- Three.js and AR.js - Using same structure as working version -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
-    <!-- AR.js components in same order as working version -->
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex-location-only.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-threex.js"></script>
+    <!-- AR.js components - using the exact same approach as working version -->
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/three.js/build/ar-nft.js"></script>
     
     <!-- Modern loaders for GLTF -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -30,6 +29,59 @@
             -webkit-user-select: none;
             user-select: none;
         }
+
+        function setupARContextFallback() {
+            updateStatus('Trying AR context without camera params...', 'warning');
+            
+            try {
+                arToolkitContext = new THREEx.ArToolkitContext({
+                    detectionMode: 'mono'
+                    // Skip camera parameters file
+                });
+                
+                arToolkitContext.init(function onCompleted() {
+                    camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+                    updateProgress(80, 'AR context ready (fallback)...');
+                    setupMarkers();
+                }, function onError(error) {
+                    console.error('AR context fallback failed:', error);
+                    updateStatus('AR initialization failed completely', 'error');
+                    
+                    // Skip to model loading anyway
+                    updateProgress(80, 'AR failed - loading model only...');
+                    setupMarkersWithoutAR();
+                });
+            } catch (error) {
+                console.error('AR context fallback error:', error);
+                setupMarkersWithoutAR();
+            }
+        }
+
+        function setupMarkersWithoutAR() {
+            // Create scene without AR for testing
+            markerRoot1 = new THREE.Group();
+            scene.add(markerRoot1);
+            
+            // Position camera manually for testing
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 3;
+            scene.remove(camera);
+            scene.add(camera);
+            
+            updateStatus('Running without AR - model only', 'warning');
+            setupTestScene();
+        }
+
+        function setupTestScene() {
+            // Test plane
+            let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
+            let material1 = new THREE.MeshBasicMaterial({ color: 0x0000ff, opacity: 0.5 });
+            mesh1 = new THREE.Mesh(geometry1, material1);
+            mesh1.rotation.x = -Math.PI/2;
+            markerRoot1.add(mesh1);
+            
+            updateProgress(90, 'Loading 3D model...');
+            loadModel();
 
         /* Loading screen */
         #loadingScreen {
@@ -288,9 +340,16 @@
             `;
         }
 
-        // Wait for page load
+        // Wait for page load and check AR.js availability
         window.addEventListener('load', function() {
             setTimeout(() => {
+                // Check if AR.js loaded properly
+                if (typeof THREEx === 'undefined') {
+                    updateStatus('AR.js not loaded - check connection', 'error');
+                    updateProgress(100, 'Error: AR.js failed to load');
+                    return;
+                }
+                
                 updateProgress(10, 'Starting initialization...');
                 initialize();
             }, 500);
@@ -353,6 +412,12 @@
                 updateProgress(60, 'Camera initialized...');
                 onResize();
                 setupARContext();
+            }, function onError(error) {
+                console.error('Camera init error:', error);
+                updateStatus('Camera failed - check permissions', 'error');
+                updateProgress(60, 'Camera failed - trying anyway...');
+                // Try to continue anyway
+                setTimeout(() => setupARContext(), 1000);
             });
             
             // handle resize event
@@ -366,17 +431,28 @@
             // setup arToolkitContext - EXACTLY like working version
             ////////////////////////////////////////////////////////////    
 
-            arToolkitContext = new THREEx.ArToolkitContext({
-                cameraParametersUrl: 'data/camera_para.dat',
-                detectionMode: 'mono'
-            });
-            
-            // copy projection matrix to camera when initialization complete
-            arToolkitContext.init(function onCompleted() {
-                camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-                updateProgress(80, 'AR context ready...');
-                setupMarkers();
-            });
+            // Add error handling for AR context initialization
+            try {
+                arToolkitContext = new THREEx.ArToolkitContext({
+                    cameraParametersUrl: 'data/camera_para.dat',
+                    detectionMode: 'mono'
+                });
+                
+                // copy projection matrix to camera when initialization complete
+                arToolkitContext.init(function onCompleted() {
+                    camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+                    updateProgress(80, 'AR context ready...');
+                    setupMarkers();
+                }, function onError(error) {
+                    console.error('AR context init error:', error);
+                    updateStatus('AR context failed - trying fallback', 'error');
+                    // Try without camera parameters file
+                    setupARContextFallback();
+                });
+            } catch (error) {
+                console.error('AR context creation error:', error);
+                setupARContextFallback();
+            }
         }
 
         function setupMarkers() {

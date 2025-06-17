@@ -284,10 +284,16 @@
                 // Mobile optimization
                 this.isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 
-                // Model options
+                // Model options - with working URLs and fallbacks
                 this.modelOptions = [
                     {
-                        name: 'E-TERRY Compressed GLB',
+                        name: 'Sample Robot Model',
+                        path: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
+                        type: 'glb',
+                        compressed: false
+                    },
+                    {
+                        name: 'Local E-TERRY Model',
                         path: 'models/ETERRY_compressed.glb',
                         type: 'glb',
                         compressed: true
@@ -435,16 +441,17 @@
                     this.onMarkerLost();
                 });
 
-                // Add test plane with better visibility
-                const geometry = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
+                // Add test plane with better visibility - make it less prominent since we have a 3D model
+                const geometry = new THREE.PlaneBufferGeometry(0.5, 0.5, 4, 4);
                 const material = new THREE.MeshBasicMaterial({ 
                     color: 0xE50914, 
-                    opacity: 0.7,
+                    opacity: 0.3,  // More transparent
                     transparent: true,
-                    side: THREE.DoubleSide  // Make visible from both sides
+                    side: THREE.DoubleSide
                 });
                 const testMesh = new THREE.Mesh(geometry, material);
                 testMesh.rotation.x = -Math.PI/2;
+                testMesh.name = 'testPlane'; // Name it so we can find it later
                 this.markerRoot.add(testMesh);
             }
 
@@ -484,12 +491,52 @@
                         }
                     } catch (error) {
                         console.warn(`Failed to load ${option.name}:`, error);
+                        this.updateStatus(`Failed to load ${option.name}`, 'warning');
                         // Continue to next model
                     }
                 }
                 
-                // If no model loads, continue with just the test plane
-                this.updateStatus('Using fallback geometry', 'warning');
+                // If no model loads, create a fallback 3D object
+                this.createFallbackModel();
+                this.updateStatus('Using fallback 3D model', 'warning');
+            }
+
+            createFallbackModel() {
+                // Create a more interesting 3D model as fallback
+                const group = new THREE.Group();
+                
+                // Create a rotating cube
+                const cubeGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+                const cubeMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xE50914,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                cube.position.y = 0.15;
+                group.add(cube);
+                
+                // Create a cylinder base
+                const cylinderGeometry = new THREE.CylinderGeometry(0.2, 0.25, 0.1, 8);
+                const cylinderMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xff4757
+                });
+                const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+                cylinder.position.y = 0.05;
+                group.add(cylinder);
+                
+                // Add text-like geometry (simplified letters E-T)
+                const textGeometry = new THREE.PlaneGeometry(0.4, 0.1);
+                const textMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0xffffff,
+                    side: THREE.DoubleSide
+                });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textMesh.position.set(0, 0.3, 0);
+                textMesh.rotation.x = -Math.PI / 6; // Slight tilt for visibility
+                group.add(textMesh);
+                
+                this.handleModelLoaded(group);
             }
 
             async tryLoadGLTF(modelOption) {
@@ -528,7 +575,7 @@
             }
 
             handleModelLoaded(model) {
-                // Remove any existing model (keep test plane)
+                // Remove any existing model (but keep the test plane for reference)
                 if (this.currentModel) {
                     this.markerRoot.remove(this.currentModel);
                 }
@@ -552,14 +599,16 @@
                     }
                 });
 
-                // Position model appropriately
-                model.position.set(0, 0.1, 0);  // Slightly above the plane
+                // Position model appropriately - make it more visible
+                model.position.set(0, 0.2, 0);  // Higher above the plane
                 model.rotation.set(0, 0, 0);
-                model.scale.set(0.25, 0.25, 0.25);
+                model.scale.set(0.4, 0.4, 0.4);  // Larger scale for visibility
 
-                // Add to marker
+                // Add to marker - this makes it appear when marker is detected
                 this.markerRoot.add(model);
                 
+                console.log(`Model loaded with ${meshCount} meshes`);
+                this.updateStatus(`3D Model Ready (${meshCount} meshes)`, 'success');
                 this.updateDebugInfo();
             }
 
@@ -638,11 +687,22 @@
                     `Detection Count: ${this.detectionCount}`,
                     `Last Detection: ${this.lastDetectionTime ? new Date(this.lastDetectionTime).toLocaleTimeString() : 'Never'}`,
                     '',
-                    `Model Loaded: ${this.currentModel ? 'YES' : 'NO'}`
+                    `3D Model Loaded: ${this.currentModel ? 'YES' : 'NO'}`,
+                    `Objects in Scene: ${this.markerRoot ? this.markerRoot.children.length : 0}`
                 ];
 
                 if (this.cameraInfo) {
                     info.push(`Camera: ${this.cameraInfo.videoWidth}x${this.cameraInfo.videoHeight}`);
+                }
+
+                if (this.currentModel) {
+                    let meshCount = 0;
+                    this.currentModel.traverse((child) => {
+                        if (child.isMesh) meshCount++;
+                    });
+                    info.push(`Model Meshes: ${meshCount}`);
+                    info.push(`Model Position: ${this.currentModel.position.x.toFixed(2)}, ${this.currentModel.position.y.toFixed(2)}, ${this.currentModel.position.z.toFixed(2)}`);
+                    info.push(`Model Scale: ${this.currentModel.scale.x.toFixed(2)}`);
                 }
 
                 debugContent.innerHTML = info.join('<br>');

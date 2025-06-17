@@ -189,11 +189,7 @@
             updateProgress(30, 'Setting up AR...');
             setupAR();
             
-            updateProgress(50, 'Loading 3D model...');
-            loadModel();
-            
-            updateProgress(90, 'Starting AR tracking...');
-            startAnimation();
+            // Model loading and animation start moved to after AR init
         }
 
         function setupScene() {
@@ -236,7 +232,7 @@
             function onResize() {
                 arToolkitSource.onResize();
                 arToolkitSource.copySizeTo(renderer.domElement);
-                if (arToolkitContext.arController !== null) {
+                if (arToolkitContext && arToolkitContext.arController !== null) {
                     arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
                 }
             }
@@ -255,6 +251,9 @@
                     camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
                     setupMarker();
                     updateProgress(70, 'AR initialized successfully...');
+                    
+                    // Load model after AR is ready
+                    loadModel();
                 });
             });
 
@@ -287,6 +286,8 @@
         }
 
         function loadModel() {
+            updateProgress(50, 'Loading 3D model...');
+            
             // Model options to try in order
             const modelOptions = [
                 {
@@ -377,6 +378,9 @@
             
             updateStatus(`Loaded: ${modelName}`, 'success');
             updateProgress(80, 'Model loaded successfully...');
+            
+            // Start animation after model is loaded
+            startAnimation();
         }
 
         function createTestModel() {
@@ -395,6 +399,9 @@
             
             updateStatus('Test model created (GLB models not found)', 'warning');
             updateProgress(80, 'Test model ready...');
+            
+            // Start animation after test model is created
+            startAnimation();
         }
 
         function startAnimation() {
@@ -414,7 +421,7 @@
 
         function update() {
             // Update artoolkit on every frame - EXACTLY like working code
-            if (arToolkitSource.ready !== false) {
+            if (arToolkitSource && arToolkitSource.ready !== false && arToolkitContext) {
                 arToolkitContext.update(arToolkitSource.domElement);
             }
         }

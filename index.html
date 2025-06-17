@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>E-TERRY AR</title>
+    <title>E-TERRY AR - Improved Detection</title>
     
     <!-- HTTPS required for mobile camera access -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -37,14 +37,14 @@
             user-select: none;
         }
 
-        /* Loading screen - Grey with red accents */
+        /* Mobile-first loading screen */
         #loadingScreen {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 50%, #0d0d0d 100%);
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -56,35 +56,35 @@
         }
 
         .loading-card {
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             border-radius: 20px;
-            padding: 40px 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-            width: 90%;
+            padding: 30px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            max-width: 90vw;
+            width: 100%;
             max-width: 400px;
         }
 
         .loading-title {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
-            margin-bottom: 20px;
-            background: linear-gradient(45deg, #dc143c, #ff1744);
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: 2px;
         }
 
         .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top: 4px solid #dc143c;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid #fff;
             border-radius: 50%;
             animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-            margin: 25px auto;
+            margin: 15px auto;
         }
 
         @keyframes spin {
@@ -95,18 +95,18 @@
 
         .loading-text {
             font-size: 1rem;
-            opacity: 0.8;
-            margin: 15px 0;
-            line-height: 1.5;
+            opacity: 0.9;
+            margin: 10px 0;
+            line-height: 1.4;
         }
 
-        /* Status bar */
+        /* Mobile status bar */
         #statusBar {
             position: fixed;
             top: 10px;
             left: 10px;
             right: 10px;
-            background: rgba(139, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(10px);
             color: white;
             padding: 12px 15px;
@@ -114,8 +114,8 @@
             font-size: 13px;
             z-index: 100;
             display: none;
-            border-left: 4px solid #ff1744;
-            box-shadow: 0 4px 20px rgba(139, 0, 0, 0.5);
+            border-left: 4px solid #4CAF50;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
         .status-success { border-left-color: #4CAF50; }
@@ -125,19 +125,30 @@
         /* Progress bar */
         .progress-container {
             width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            margin-top: 20px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin-top: 15px;
             overflow: hidden;
         }
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #ff6b6b, #ff1744);
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
             width: 0%;
             transition: width 0.3s ease;
-            border-radius: 3px;
+            border-radius: 2px;
+        }
+
+        /* Camera video styling */
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
         }
     </style>
 </head>
@@ -160,93 +171,109 @@
     </div>
 
     <script>
-        // Global variables
+        // Global variables - simplified like working code
         var scene, camera, renderer, clock, deltaTime, totalTime;
         var arToolkitSource, arToolkitContext;
         var markerRoot1;
         var mesh1, currentModel;
 
-        // Initialize
-        initialize();
+        // Wait for all scripts to load
+        window.addEventListener('load', function() {
+            setTimeout(initialize, 500);
+        });
 
         function initialize() {
             updateProgress(10, 'Setting up 3D scene...');
+            setupScene();
             
-            // Scene setup
+            updateProgress(30, 'Setting up AR...');
+            setupAR();
+            
+            // Model loading and animation start moved to after AR init
+        }
+
+        function setupScene() {
+            // Initialize scene - EXACTLY like working OBJ code
             scene = new THREE.Scene();
 
-            // Lighting
+            // Simple lighting - EXACTLY like working code
             let ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
             scene.add(ambientLight);
 
-            // Camera
             camera = new THREE.Camera();
             scene.add(camera);
 
-            // Renderer - simple setup like working example
+            // Setup renderer - EXACTLY like working code
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true
             });
+
             renderer.setClearColor(new THREE.Color('lightgrey'), 0);
+            
+            // Use fixed size initially like working code, then handle resize
             renderer.setSize(640, 480);
             renderer.domElement.style.position = 'absolute';
             renderer.domElement.style.top = '0px';
             renderer.domElement.style.left = '0px';
-            renderer.domElement.style.width = '100%';
-            renderer.domElement.style.height = '100%';
             document.body.appendChild(renderer.domElement);
 
             clock = new THREE.Clock();
             deltaTime = 0;
             totalTime = 0;
+        }
 
-            updateProgress(30, 'Setting up AR...');
-            
-            // Setup AR Source
+        function setupAR() {
+            // EXACTLY like working OBJ code
             arToolkitSource = new THREEx.ArToolkitSource({
-                sourceType: 'webcam',
+                sourceType: 'webcam'
             });
 
             function onResize() {
                 arToolkitSource.onResize();
                 arToolkitSource.copySizeTo(renderer.domElement);
-                if (arToolkitContext.arController !== null) {
+                if (arToolkitContext && arToolkitContext.arController !== null) {
                     arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
                 }
             }
 
             arToolkitSource.init(function onReady() {
                 onResize();
-                updateProgress(50, 'Camera ready...');
+                
+                // Create AR context after source is ready - EXACTLY like working code
+                arToolkitContext = new THREEx.ArToolkitContext({
+                    cameraParametersUrl: 'data/camera_para.dat',
+                    detectionMode: 'mono'
+                });
+
+                // Copy projection matrix when initialization complete - EXACTLY like working code
+                arToolkitContext.init(function onCompleted() {
+                    camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+                    setupMarker();
+                    updateProgress(70, 'AR initialized successfully...');
+                    
+                    // Load model after AR is ready
+                    loadModel();
+                });
             });
 
-            // Handle resize
+            // Handle resize event - EXACTLY like working code
             window.addEventListener('resize', function() {
                 onResize();
             });
+        }
 
-            // Setup AR Context
-            arToolkitContext = new THREEx.ArToolkitContext({
-                cameraParametersUrl: 'data/camera_para.dat',
-                detectionMode: 'mono'
-            });
-
-            arToolkitContext.init(function onCompleted() {
-                camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-                updateProgress(70, 'AR context ready...');
-            });
-
-            // Setup marker
+        function setupMarker() {
+            // Setup marker - EXACTLY like working OBJ code
             markerRoot1 = new THREE.Group();
             scene.add(markerRoot1);
-            
+
             let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
                 type: 'pattern',
                 patternUrl: 'data/eterry-logo.patt'
             });
 
-            // Add test geometry
+            // Add test plane - EXACTLY like working code
             let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
             let material1 = new THREE.MeshBasicMaterial({ 
                 color: 0x0000ff, 
@@ -256,75 +283,76 @@
             mesh1 = new THREE.Mesh(geometry1, material1);
             mesh1.rotation.x = -Math.PI / 2;
             markerRoot1.add(mesh1);
-
-            updateProgress(80, 'Loading model...');
-            
-            // Try to load model
-            loadModel();
-            
-            // Start animation
-            animate();
-            
-            updateProgress(100, 'AR Ready!');
-            setTimeout(() => hideLoadingScreen(), 1000);
         }
 
         function loadModel() {
-            // Check if GLTFLoader is available
-            if (typeof THREE.GLTFLoader === 'undefined') {
-                console.log('GLTFLoader not available');
+            updateProgress(50, 'Loading 3D model...');
+            
+            // Model options to try in order
+            const modelOptions = [
+                {
+                    name: 'E-TERRY Compressed GLB',
+                    path: 'models/ETERRY_compressed.glb',
+                    type: 'glb',
+                    compressed: true
+                },
+                {
+                    name: 'E-TERRY Standard GLB',
+                    path: 'models/ETERRY.glb',
+                    type: 'glb',
+                    compressed: false
+                }
+            ];
+
+            tryLoadNextModel(modelOptions, 0);
+        }
+
+        function tryLoadNextModel(modelOptions, index) {
+            if (index >= modelOptions.length) {
+                // All models failed, create test model
                 createTestModel();
                 return;
             }
 
-            const loader = new THREE.GLTFLoader();
+            const option = modelOptions[index];
             
-            // Try compressed model first
+            if (typeof THREE.GLTFLoader === 'undefined') {
+                // GLTFLoader not available, try next or fallback
+                tryLoadNextModel(modelOptions, index + 1);
+                return;
+            }
+
+            const loader = new THREE.GLTFLoader();
+
+            // Setup Draco if needed and available
+            if (option.compressed && typeof THREE.DRACOLoader !== 'undefined') {
+                const dracoLoader = new THREE.DRACOLoader();
+                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                loader.setDRACOLoader(dracoLoader);
+            }
+
             loader.load(
-                'models/ETERRY_compressed.glb',
+                option.path,
                 function(gltf) {
-                    console.log('Compressed model loaded successfully');
-                    handleModelLoaded(gltf.scene, 'E-TERRY Compressed Model');
+                    // Success - handle model like working OBJ code
+                    handleModelLoaded(gltf.scene, option.name);
                 },
-                function(xhr) {
+                function(progress) {
                     // Progress
-                    if (xhr.lengthComputable) {
-                        const percentComplete = xhr.loaded / xhr.total * 100;
-                        console.log('Loading compressed model: ' + Math.round(percentComplete) + '%');
+                    if (progress.lengthComputable) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        updateProgress(50 + (percent * 0.2), `Loading ${option.name}: ${percent}%`);
                     }
                 },
                 function(error) {
-                    console.log('Failed to load compressed model, trying standard model...');
-                    // Try uncompressed
-                    loader.load(
-                        'models/ETERRY.glb',
-                        function(gltf) {
-                            console.log('Standard model loaded successfully');
-                            handleModelLoaded(gltf.scene, 'E-TERRY Model');
-                        },
-                        function(xhr) {
-                            // Progress
-                            if (xhr.lengthComputable) {
-                                const percentComplete = xhr.loaded / xhr.total * 100;
-                                console.log('Loading standard model: ' + Math.round(percentComplete) + '%');
-                            }
-                        },
-                        function(error) {
-                            console.log('Failed to load any model:', error);
-                            createTestModel();
-                        }
-                    );
+                    // Error - try next model
+                    console.log(`Failed to load ${option.name}:`, error);
+                    tryLoadNextModel(modelOptions, index + 1);
                 }
             );
         }
 
         function handleModelLoaded(model, modelName) {
-            // Remove test plane when model loads successfully
-            if (mesh1) {
-                markerRoot1.remove(mesh1);
-                mesh1 = null;
-            }
-            
             // Remove any existing model
             if (currentModel) {
                 markerRoot1.remove(currentModel);
@@ -332,7 +360,7 @@
 
             currentModel = model;
 
-            // Process model
+            // Process model like working OBJ code
             model.traverse(function(child) {
                 if (child.isMesh) {
                     child.material.side = THREE.DoubleSide;
@@ -340,34 +368,65 @@
                 }
             });
 
-            // Position and scale model
+            // Position model - EXACTLY like working OBJ code
             model.position.set(0, 0, 0);
             model.rotation.set(0, 0, 0);
             model.scale.set(1, 1, 1);
 
-            // Add model to marker
+            // Add to marker
             markerRoot1.add(model);
             
             updateStatus(`Loaded: ${modelName}`, 'success');
+            updateProgress(80, 'Model loaded successfully...');
+            
+            // Start animation after model is loaded
+            startAnimation();
         }
 
         function createTestModel() {
-            // Don't add anything else if model loading fails
-            updateStatus('Model files not found - using test plane', 'warning');
+            // Create test cube if models fail
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshNormalMaterial();
+            const cube = new THREE.Mesh(geometry, material);
+            
+            // Position like working code
+            cube.position.set(0, 0.25, 0);
+            cube.rotation.set(0, 0, 0);
+            cube.scale.set(1, 1, 1);
+            
+            markerRoot1.add(cube);
+            currentModel = cube;
+            
+            updateStatus('Test model created (GLB models not found)', 'warning');
+            updateProgress(80, 'Test model ready...');
+            
+            // Start animation after test model is created
+            startAnimation();
         }
 
-        // Animation loop
+        function startAnimation() {
+            updateProgress(100, 'AR Ready!');
+            setTimeout(() => hideLoadingScreen(), 1000);
+            animate();
+        }
+
+        // Animation loop - EXACTLY like working OBJ code
         function animate() {
             requestAnimationFrame(animate);
-
             deltaTime = clock.getDelta();
             totalTime += deltaTime;
+            update();
+            render();
+        }
 
-            // Update artoolkit on every frame
-            if (arToolkitSource.ready !== false) {
+        function update() {
+            // Update artoolkit on every frame - EXACTLY like working code
+            if (arToolkitSource && arToolkitSource.ready !== false && arToolkitContext) {
                 arToolkitContext.update(arToolkitSource.domElement);
             }
+        }
 
+        function render() {
             renderer.render(scene, camera);
         }
 
@@ -408,6 +467,11 @@
                 }, 1000);
             }
         }
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.log('Error:', e.error);
+        });
     </script>
 </body>
 </html>

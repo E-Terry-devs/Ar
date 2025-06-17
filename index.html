@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>E-TERRY AR - Optimized Fullscreen</title>
+    <title>E-TERRY AR - Fixed Fullscreen</title>
     
     <!-- HTTPS required for mobile camera access -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -40,19 +40,6 @@
             position: fixed;
             -webkit-user-select: none;
             user-select: none;
-        }
-
-        /* AR Container for proper scaling */
-        #arContainer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
         }
 
         /* Mobile-first loading screen */
@@ -157,22 +144,30 @@
             border-radius: 2px;
         }
 
-        /* Camera video styling - will be positioned by JS */
+        /* Camera video styling */
         video {
             position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            z-index: -1;
         }
 
-        /* Canvas styling - will be positioned by JS */
+        /* Canvas styling */
         canvas {
             position: absolute;
+            top: 0;
+            left: 0;
             display: block;
         }
     </style>
 </head>
 
 <body>
-    <div id="arContainer"></div>
-    
     <div id="loadingScreen">
         <div class="loading-card">
             <h1 class="loading-title">E-TERRY AR</h1>
@@ -227,15 +222,11 @@
             });
 
             renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-            
-            // Start with standard size, will be resized after AR init
             renderer.setSize(640, 480);
             renderer.domElement.style.position = 'absolute';
             renderer.domElement.style.top = '0px';
             renderer.domElement.style.left = '0px';
-            
-            // Add to container instead of body
-            document.getElementById('arContainer').appendChild(renderer.domElement);
+            document.body.appendChild(renderer.domElement);
 
             clock = new THREE.Clock();
             deltaTime = 0;
@@ -249,60 +240,37 @@
             });
 
             function onResize() {
-                arToolkitSource.onResize();
-                arToolkitSource.copySizeTo(renderer.domElement);
-                
+                arToolkitSource.onResizeElement();
+                arToolkitSource.copyElementSizeTo(renderer.domElement);
                 if (arToolkitContext && arToolkitContext.arController !== null) {
-                    arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
+                    arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
                 }
                 
-                // Center the AR view in the window
-                const sourceWidth = arToolkitSource.domElement.videoWidth || arToolkitSource.domElement.width;
-                const sourceHeight = arToolkitSource.domElement.videoHeight || arToolkitSource.domElement.height;
+                // Scale renderer to fill window while maintaining aspect
+                const arWidth = renderer.domElement.width;
+                const arHeight = renderer.domElement.height;
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
                 
-                if (sourceWidth && sourceHeight) {
-                    // Calculate scale to fill screen while maintaining aspect ratio
-                    const windowAspect = window.innerWidth / window.innerHeight;
-                    const sourceAspect = sourceWidth / sourceHeight;
-                    
-                    let scale = 1;
-                    let offsetX = 0;
-                    let offsetY = 0;
-                    
-                    if (windowAspect > sourceAspect) {
-                        // Window is wider - fit to width
-                        scale = window.innerWidth / sourceWidth;
-                        offsetY = (window.innerHeight - (sourceHeight * scale)) / 2;
-                    } else {
-                        // Window is taller - fit to height
-                        scale = window.innerHeight / sourceHeight;
-                        offsetX = (window.innerWidth - (sourceWidth * scale)) / 2;
-                    }
-                    
-                    // Apply scale and position to video element
-                    if (arToolkitSource.domElement) {
-                        arToolkitSource.domElement.style.width = (sourceWidth * scale) + 'px';
-                        arToolkitSource.domElement.style.height = (sourceHeight * scale) + 'px';
-                        arToolkitSource.domElement.style.left = offsetX + 'px';
-                        arToolkitSource.domElement.style.top = offsetY + 'px';
-                    }
-                    
-                    // Apply same transform to renderer
-                    renderer.domElement.style.width = (sourceWidth * scale) + 'px';
-                    renderer.domElement.style.height = (sourceHeight * scale) + 'px';
-                    renderer.domElement.style.left = offsetX + 'px';
-                    renderer.domElement.style.top = offsetY + 'px';
-                }
+                // Calculate scale to cover entire window
+                const scaleX = windowWidth / arWidth;
+                const scaleY = windowHeight / arHeight;
+                const scale = Math.max(scaleX, scaleY);
+                
+                // Apply scale and center
+                renderer.domElement.style.width = (arWidth * scale) + 'px';
+                renderer.domElement.style.height = (arHeight * scale) + 'px';
+                renderer.domElement.style.left = ((windowWidth - arWidth * scale) / 2) + 'px';
+                renderer.domElement.style.top = ((windowHeight - arHeight * scale) / 2) + 'px';
             }
 
             arToolkitSource.init(function onReady() {
-                // Add video to container
-                document.getElementById('arContainer').appendChild(arToolkitSource.domElement);
+                // Add video element to body
+                document.body.appendChild(arToolkitSource.domElement);
                 
-                // Initial resize after a small delay to ensure video dimensions are available
                 setTimeout(function() {
                     onResize();
-                }, 1000);
+                }, 2000);
                 
                 // Create AR context after source is ready - EXACTLY like working code
                 arToolkitContext = new THREEx.ArToolkitContext({
@@ -440,7 +408,20 @@
             // Position model - EXACTLY like working OBJ code
             model.position.set(0, 0, 0);
             model.rotation.set(0, 0, 0);
-            model.scale.set(1, 1, 1);
+            
+            // Calculate model bounds to ensure it fits in marker
+            const box = new THREE.Box3().setFromObject(model);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            
+            // Scale to fit within marker (0.8 to leave some margin)
+            const targetSize = 0.8;
+            const scale = targetSize / maxDim;
+            model.scale.set(scale, scale, scale);
+            
+            // Center the model
+            const center = box.getCenter(new THREE.Vector3());
+            model.position.set(-center.x * scale, -center.y * scale + 0.4, -center.z * scale);
 
             // Add to marker
             markerRoot1.add(model);

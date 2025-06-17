@@ -358,7 +358,7 @@
                 );
 
                 // Add test plane - Updated with E-TERRY red color
-                const geometry = new THREE.PlaneBufferGeometry(1, 1);
+                const geometry = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
                 const material = new THREE.MeshBasicMaterial({ 
                     color: 0xE50914, 
                     opacity: 0.5,
@@ -445,7 +445,7 @@
                 // Position model - EXACTLY like working code
                 model.position.set(0, 0, 0);
                 model.rotation.set(0, 0, 0);
-                model.scale.set(0.5, 0.5, 0.5);
+                model.scale.set(0.25, 0.25, 0.25);
 
                 // Add to marker
                 this.markerRoot.add(model);

@@ -246,22 +246,7 @@
                     arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
                 }
                 
-                // Scale renderer to fill window while maintaining aspect
-                const arWidth = renderer.domElement.width;
-                const arHeight = renderer.domElement.height;
-                const windowWidth = window.innerWidth;
-                const windowHeight = window.innerHeight;
                 
-                // Calculate scale to cover entire window
-                const scaleX = windowWidth / arWidth;
-                const scaleY = windowHeight / arHeight;
-                const scale = Math.max(scaleX, scaleY);
-                
-                // Apply scale and center
-                renderer.domElement.style.width = (arWidth * scale) + 'px';
-                renderer.domElement.style.height = (arHeight * scale) + 'px';
-                renderer.domElement.style.left = ((windowWidth - arWidth * scale) / 2) + 'px';
-                renderer.domElement.style.top = ((windowHeight - arHeight * scale) / 2) + 'px';
             }
 
             arToolkitSource.init(function onReady() {

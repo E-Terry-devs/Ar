@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>E-TERRY AR - Fullscreen</title>
+    <title>E-TERRY AR - Optimized Fullscreen</title>
     
     <!-- HTTPS required for mobile camera access -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -42,6 +42,19 @@
             user-select: none;
         }
 
+        /* AR Container for proper scaling */
+        #arContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
         /* Mobile-first loading screen */
         #loadingScreen {
             position: fixed;
@@ -49,13 +62,13 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: #808080; /* solid grey background */
+            background: #808080;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            color: #FF0000; /* E-TERRY red for text */
+            color: #FF0000;
             text-align: center;
             padding: 20px;
         }
@@ -76,7 +89,7 @@
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 15px;
-            color: #FF0000; /* E-TERRY red */
+            color: #FF0000;
             background: none;
         }
 
@@ -84,7 +97,7 @@
             width: 50px;
             height: 50px;
             border: 3px solid rgba(255, 255, 255, 0.2);
-            border-top: 3px solid #FF0000; /* E-TERRY red */
+            border-top: 3px solid #FF0000;
             border-radius: 50%;
             animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
             margin: 15px auto;
@@ -101,7 +114,7 @@
             opacity: 0.9;
             margin: 10px 0;
             line-height: 1.4;
-            color: #FF0000; /* E-TERRY red */
+            color: #FF0000;
         }
 
         /* Mobile status bar */
@@ -144,30 +157,22 @@
             border-radius: 2px;
         }
 
-        /* Canvas styling for fullscreen */
-        canvas {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            display: block;
+        /* Camera video styling - will be positioned by JS */
+        video {
+            position: absolute;
         }
 
-        /* Camera video styling */
-        video {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover;
-            z-index: -1;
+        /* Canvas styling - will be positioned by JS */
+        canvas {
+            position: absolute;
+            display: block;
         }
     </style>
 </head>
 
 <body>
+    <div id="arContainer"></div>
+    
     <div id="loadingScreen">
         <div class="loading-card">
             <h1 class="loading-title">E-TERRY AR</h1>
@@ -185,7 +190,7 @@
     </div>
 
     <script>
-        // Global variables - simplified like working code
+        // Global variables
         var scene, camera, renderer, clock, deltaTime, totalTime;
         var arToolkitSource, arToolkitContext;
         var markerRoot1;
@@ -202,22 +207,20 @@
             
             updateProgress(30, 'Setting up AR...');
             setupAR();
-            
-            // Model loading and animation start moved to after AR init
         }
 
         function setupScene() {
-            // Initialize scene
+            // Initialize scene - EXACTLY like working OBJ code
             scene = new THREE.Scene();
 
-            // Simple lighting
+            // Simple lighting - EXACTLY like working code
             let ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
             scene.add(ambientLight);
 
             camera = new THREE.Camera();
             scene.add(camera);
 
-            // Setup renderer with fullscreen from start
+            // Setup renderer - EXACTLY like working code
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true
@@ -225,17 +228,14 @@
 
             renderer.setClearColor(new THREE.Color('lightgrey'), 0);
             
-            // Set to window size from the beginning
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            
+            // Start with standard size, will be resized after AR init
+            renderer.setSize(640, 480);
             renderer.domElement.style.position = 'absolute';
-            renderer.domElement.style.top = '0';
-            renderer.domElement.style.left = '0';
-            renderer.domElement.style.width = '100vw';
-            renderer.domElement.style.height = '100vh';
+            renderer.domElement.style.top = '0px';
+            renderer.domElement.style.left = '0px';
             
-            document.body.appendChild(renderer.domElement);
+            // Add to container instead of body
+            document.getElementById('arContainer').appendChild(renderer.domElement);
 
             clock = new THREE.Clock();
             deltaTime = 0;
@@ -243,53 +243,74 @@
         }
 
         function setupAR() {
+            // EXACTLY like working OBJ code
             arToolkitSource = new THREEx.ArToolkitSource({
-                sourceType: 'webcam',
-                // Ensure webcam fills the screen
-                sourceWidth: window.innerHeight,
-                sourceHeight: window.innerWidth,
-                displayWidth: window.innerWidth,
-                displayHeight: window.innerHeight
+                sourceType: 'webcam'
             });
 
             function onResize() {
-                // Handle resize to maintain fullscreen
-                arToolkitSource.onResizeElement();
-                arToolkitSource.copyElementSizeTo(renderer.domElement);
-                
-                if (window.innerWidth > window.innerHeight) {
-                    // Landscape
-                    arToolkitSource.domElement.style.width = window.innerWidth + 'px';
-                    arToolkitSource.domElement.style.height = 'auto';
-                } else {
-                    // Portrait
-                    arToolkitSource.domElement.style.height = window.innerHeight + 'px';
-                    arToolkitSource.domElement.style.width = 'auto';
-                }
+                arToolkitSource.onResize();
+                arToolkitSource.copySizeTo(renderer.domElement);
                 
                 if (arToolkitContext && arToolkitContext.arController !== null) {
-                    arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+                    arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
                 }
                 
-                // Update renderer size
-                renderer.setSize(window.innerWidth, window.innerHeight);
+                // Center the AR view in the window
+                const sourceWidth = arToolkitSource.domElement.videoWidth || arToolkitSource.domElement.width;
+                const sourceHeight = arToolkitSource.domElement.videoHeight || arToolkitSource.domElement.height;
+                
+                if (sourceWidth && sourceHeight) {
+                    // Calculate scale to fill screen while maintaining aspect ratio
+                    const windowAspect = window.innerWidth / window.innerHeight;
+                    const sourceAspect = sourceWidth / sourceHeight;
+                    
+                    let scale = 1;
+                    let offsetX = 0;
+                    let offsetY = 0;
+                    
+                    if (windowAspect > sourceAspect) {
+                        // Window is wider - fit to width
+                        scale = window.innerWidth / sourceWidth;
+                        offsetY = (window.innerHeight - (sourceHeight * scale)) / 2;
+                    } else {
+                        // Window is taller - fit to height
+                        scale = window.innerHeight / sourceHeight;
+                        offsetX = (window.innerWidth - (sourceWidth * scale)) / 2;
+                    }
+                    
+                    // Apply scale and position to video element
+                    if (arToolkitSource.domElement) {
+                        arToolkitSource.domElement.style.width = (sourceWidth * scale) + 'px';
+                        arToolkitSource.domElement.style.height = (sourceHeight * scale) + 'px';
+                        arToolkitSource.domElement.style.left = offsetX + 'px';
+                        arToolkitSource.domElement.style.top = offsetY + 'px';
+                    }
+                    
+                    // Apply same transform to renderer
+                    renderer.domElement.style.width = (sourceWidth * scale) + 'px';
+                    renderer.domElement.style.height = (sourceHeight * scale) + 'px';
+                    renderer.domElement.style.left = offsetX + 'px';
+                    renderer.domElement.style.top = offsetY + 'px';
+                }
             }
 
             arToolkitSource.init(function onReady() {
-                // Ensure video element is also fullscreen
-                setTimeout(() => {
+                // Add video to container
+                document.getElementById('arContainer').appendChild(arToolkitSource.domElement);
+                
+                // Initial resize after a small delay to ensure video dimensions are available
+                setTimeout(function() {
                     onResize();
                 }, 1000);
                 
-                // Create AR context after source is ready
+                // Create AR context after source is ready - EXACTLY like working code
                 arToolkitContext = new THREEx.ArToolkitContext({
                     cameraParametersUrl: 'data/camera_para.dat',
-                    detectionMode: 'mono',
-                    canvasWidth: window.innerWidth,
-                    canvasHeight: window.innerHeight
+                    detectionMode: 'mono'
                 });
 
-                // Copy projection matrix when initialization complete
+                // Copy projection matrix when initialization complete - EXACTLY like working code
                 arToolkitContext.init(function onCompleted() {
                     camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
                     setupMarker();
@@ -300,29 +321,28 @@
                 });
             });
 
-            // Handle resize event
+            // Handle resize event - EXACTLY like working code
             window.addEventListener('resize', function() {
                 onResize();
             });
             
-            // Handle orientation change on mobile
+            // Handle orientation change
             window.addEventListener('orientationchange', function() {
                 setTimeout(onResize, 500);
             });
         }
 
         function setupMarker() {
-            // Setup marker
+            // Setup marker - EXACTLY like working OBJ code
             markerRoot1 = new THREE.Group();
             scene.add(markerRoot1);
 
             let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
                 type: 'pattern',
-                patternUrl: 'data/eterry-logo.patt',
-                changeMatrixMode: 'cameraTransformMatrix'
+                patternUrl: 'data/eterry-logo.patt'
             });
 
-            // Add test plane
+            // Add test plane - EXACTLY like working code
             let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
             let material1 = new THREE.MeshBasicMaterial({ 
                 color: 0x0000ff, 
@@ -383,7 +403,7 @@
             loader.load(
                 option.path,
                 function(gltf) {
-                    // Success - handle model
+                    // Success - handle model like working OBJ code
                     handleModelLoaded(gltf.scene, option.name);
                 },
                 function(progress) {
@@ -409,7 +429,7 @@
 
             currentModel = model;
 
-            // Process model
+            // Process model like working OBJ code
             model.traverse(function(child) {
                 if (child.isMesh) {
                     child.material.side = THREE.DoubleSide;
@@ -417,7 +437,7 @@
                 }
             });
 
-            // Position model
+            // Position model - EXACTLY like working OBJ code
             model.position.set(0, 0, 0);
             model.rotation.set(0, 0, 0);
             model.scale.set(1, 1, 1);
@@ -438,7 +458,7 @@
             const material = new THREE.MeshNormalMaterial();
             const cube = new THREE.Mesh(geometry, material);
             
-            // Position
+            // Position like working code
             cube.position.set(0, 0.25, 0);
             cube.rotation.set(0, 0, 0);
             cube.scale.set(1, 1, 1);
@@ -459,7 +479,7 @@
             animate();
         }
 
-        // Animation loop
+        // Animation loop - EXACTLY like working OBJ code
         function animate() {
             requestAnimationFrame(animate);
             deltaTime = clock.getDelta();
@@ -469,7 +489,7 @@
         }
 
         function update() {
-            // Update artoolkit on every frame
+            // Update artoolkit on every frame - EXACTLY like working code
             if (arToolkitSource && arToolkitSource.ready !== false && arToolkitContext) {
                 arToolkitContext.update(arToolkitSource.domElement);
             }

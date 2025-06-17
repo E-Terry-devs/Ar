@@ -145,10 +145,17 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw !important;
+            height: 100vh !important;
             object-fit: cover;
             z-index: -1;
+        }
+        
+        /* Ensure canvas takes full screen */
+        canvas {
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: cover;
         }
     </style>
 </head>
@@ -211,8 +218,8 @@
 
             renderer.setClearColor(new THREE.Color('lightgrey'), 0);
             
-            // Use fixed size initially like working code, then handle resize
-            renderer.setSize(640, 480);
+            // Start with window size for better mobile resolution
+            renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.domElement.style.position = 'absolute';
             renderer.domElement.style.top = '0px';
             renderer.domElement.style.left = '0px';
@@ -226,7 +233,7 @@
         function setupAR() {
             // EXACTLY like working OBJ code
             arToolkitSource = new THREEx.ArToolkitSource({
-                sourceType: 'webcam'
+                sourceType: 'webcam',
             });
 
             function onResize() {
@@ -238,12 +245,13 @@
             }
 
             arToolkitSource.init(function onReady() {
+                // Call onResize immediately after source is ready
                 onResize();
                 
                 // Create AR context after source is ready - EXACTLY like working code
                 arToolkitContext = new THREEx.ArToolkitContext({
                     cameraParametersUrl: 'data/camera_para.dat',
-                    detectionMode: 'mono'
+                    detectionMode: 'mono',
                 });
 
                 // Copy projection matrix when initialization complete - EXACTLY like working code
@@ -270,10 +278,10 @@
 
             let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
                 type: 'pattern',
-                patternUrl: 'data/eterry-logo.patt'
+                patternUrl: 'data/eterry-logo.patt',
             });
 
-            // Add test plane - EXACTLY like working code
+            // Add test plane - EXACTLY like working code with same geometry
             let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
             let material1 = new THREE.MeshBasicMaterial({ 
                 color: 0x0000ff, 

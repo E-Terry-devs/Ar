@@ -123,25 +123,6 @@
         .status-warning { border-left-color: #E50914; }
         .status-error { border-left-color: #E50914; }
 
-        /* Debug info panel */
-        #debugInfo {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(20px);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 11px;
-            border: 1px solid rgba(229, 9, 20, 0.2);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            max-height: 30vh;
-            overflow-y: auto;
-            display: none;
-        }
-
         /* Progress bar */
         .progress-container {
             width: 100%;
@@ -158,45 +139,6 @@
             width: 0%;
             transition: width 0.3s ease;
             border-radius: 2px;
-        }
-
-        /* Debug toggle button */
-        .debug-toggle {
-            position: fixed;
-            top: 50px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            z-index: 99;
-        }
-
-        /* Detection feedback */
-        .detection-indicator {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            z-index: 101;
-            display: none;
-        }
-
-        .detection-active {
-            background: rgba(229, 9, 20, 0.8);
-            animation: pulse 1s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.8; }
-            50% { opacity: 1; }
         }
 
         /* Prevent zoom on iOS */
@@ -232,10 +174,6 @@
     
     <div id="statusBar">
         <span id="statusText">Ready</span>
-    </div>
-
-    <div class="detection-indicator" id="detectionIndicator">
-        Marker Detected
     </div>
 
     <script>
@@ -450,20 +388,11 @@
                 this.lastDetectionTime = Date.now();
                 this.detectionCount++;
                 
-                const indicator = document.getElementById('detectionIndicator');
-                indicator.style.display = 'block';
-                indicator.classList.add('detection-active');
-                
                 this.markerRoot.visible = true;
-                this.updateStatus('Marker Detected!', 'success');
             }
 
             onMarkerLost() {
                 this.isMarkerVisible = false;
-                
-                const indicator = document.getElementById('detectionIndicator');
-                indicator.style.display = 'none';
-                indicator.classList.remove('detection-active');
             }
 
             async loadModel() {
@@ -636,9 +565,9 @@
                     this.renderer.render(this.scene, this.camera);
                     
                     // Update debug info periodically
-                    // if (Date.now() % 1000 < 16) { // Roughly every second
-                    //     this.updateDebugInfo();
-                    // }
+                    if (Date.now() % 1000 < 16) { // Roughly every second
+                        this.updateDebugInfo();
+                    }
                 };
                 
                 animate();

@@ -44,13 +44,13 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: #808080; /* solid grey background */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            color: white;
+            color: #FF0000; /* E-TERRY red for text */
             text-align: center;
             padding: 20px;
         }
@@ -71,17 +71,15 @@
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 15px;
-            background: linear-gradient(45deg, #fff, #f0f0f0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #FF0000; /* E-TERRY red */
+            background: none;
         }
 
         .spinner {
             width: 50px;
             height: 50px;
             border: 3px solid rgba(255, 255, 255, 0.2);
-            border-top: 3px solid #fff;
+            border-top: 3px solid #FF0000; /* E-TERRY red */
             border-radius: 50%;
             animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
             margin: 15px auto;
@@ -98,6 +96,7 @@
             opacity: 0.9;
             margin: 10px 0;
             line-height: 1.4;
+            color: #FF0000; /* E-TERRY red */
         }
 
         /* Mobile status bar */

@@ -272,6 +272,7 @@
         function loadModel() {
             // Check if GLTFLoader is available
             if (typeof THREE.GLTFLoader === 'undefined') {
+                console.log('GLTFLoader not available');
                 createTestModel();
                 return;
             }
@@ -282,18 +283,34 @@
             loader.load(
                 'models/ETERRY_compressed.glb',
                 function(gltf) {
-                    handleModelLoaded(gltf.scene, 'E-TERRY Model');
+                    console.log('Compressed model loaded successfully');
+                    handleModelLoaded(gltf.scene, 'E-TERRY Compressed Model');
                 },
-                null,
+                function(xhr) {
+                    // Progress
+                    if (xhr.lengthComputable) {
+                        const percentComplete = xhr.loaded / xhr.total * 100;
+                        console.log('Loading compressed model: ' + Math.round(percentComplete) + '%');
+                    }
+                },
                 function(error) {
+                    console.log('Failed to load compressed model, trying standard model...');
                     // Try uncompressed
                     loader.load(
                         'models/ETERRY.glb',
                         function(gltf) {
+                            console.log('Standard model loaded successfully');
                             handleModelLoaded(gltf.scene, 'E-TERRY Model');
                         },
-                        null,
-                        function() {
+                        function(xhr) {
+                            // Progress
+                            if (xhr.lengthComputable) {
+                                const percentComplete = xhr.loaded / xhr.total * 100;
+                                console.log('Loading standard model: ' + Math.round(percentComplete) + '%');
+                            }
+                        },
+                        function(error) {
+                            console.log('Failed to load any model:', error);
                             createTestModel();
                         }
                     );
@@ -302,17 +319,20 @@
         }
 
         function handleModelLoaded(model, modelName) {
-            // Remove test plane if model loads successfully
+            // Remove test plane when model loads successfully
             if (mesh1) {
                 markerRoot1.remove(mesh1);
+                mesh1 = null;
             }
             
+            // Remove any existing model
             if (currentModel) {
                 markerRoot1.remove(currentModel);
             }
 
             currentModel = model;
 
+            // Process model
             model.traverse(function(child) {
                 if (child.isMesh) {
                     child.material.side = THREE.DoubleSide;
@@ -320,17 +340,19 @@
                 }
             });
 
+            // Position and scale model
             model.position.set(0, 0, 0);
             model.rotation.set(0, 0, 0);
             model.scale.set(1, 1, 1);
 
+            // Add model to marker
             markerRoot1.add(model);
             
             updateStatus(`Loaded: ${modelName}`, 'success');
         }
 
         function createTestModel() {
-            // Don't create cube - keep only the plane
+            // Don't add anything else if model loading fails
             updateStatus('Model files not found - using test plane', 'warning');
         }
 

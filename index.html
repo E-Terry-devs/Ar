@@ -193,6 +193,8 @@
             renderer.domElement.style.position = 'absolute';
             renderer.domElement.style.top = '0px';
             renderer.domElement.style.left = '0px';
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
             document.body.appendChild(renderer.domElement);
 
             clock = new THREE.Clock();
@@ -300,6 +302,11 @@
         }
 
         function handleModelLoaded(model, modelName) {
+            // Remove test plane if model loads successfully
+            if (mesh1) {
+                markerRoot1.remove(mesh1);
+            }
+            
             if (currentModel) {
                 markerRoot1.remove(currentModel);
             }
@@ -323,15 +330,8 @@
         }
 
         function createTestModel() {
-            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-            const material = new THREE.MeshNormalMaterial();
-            const cube = new THREE.Mesh(geometry, material);
-            
-            cube.position.set(0, 0.25, 0);
-            markerRoot1.add(cube);
-            currentModel = cube;
-            
-            updateStatus('Test cube ready', 'warning');
+            // Don't create cube - keep only the plane
+            updateStatus('Model files not found - using test plane', 'warning');
         }
 
         // Animation loop

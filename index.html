@@ -284,19 +284,25 @@
                 // Mobile optimization
                 this.isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 
-                // Model options - with working URLs and fallbacks
+                // Model options - prioritize your E-TERRY model
                 this.modelOptions = [
                     {
-                        name: 'Sample Robot Model',
-                        path: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
+                        name: 'E-TERRY Model',
+                        path: 'models/ETERRY_compressed.glb',
+                        type: 'glb',
+                        compressed: true
+                    },
+                    {
+                        name: 'E-TERRY Uncompressed',
+                        path: 'models/ETERRY.glb',
                         type: 'glb',
                         compressed: false
                     },
                     {
-                        name: 'Local E-TERRY Model',
-                        path: 'models/ETERRY_compressed.glb',
+                        name: 'Sample Robot Model (Fallback)',
+                        path: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
                         type: 'glb',
-                        compressed: true
+                        compressed: false
                     }
                 ];
 
@@ -503,26 +509,47 @@
             }
 
             async loadModel() {
+                this.updateStatus('Loading E-TERRY model...', 'info');
+                
                 // Try loading each model option
                 for (let i = 0; i < this.modelOptions.length; i++) {
                     const option = this.modelOptions[i];
                     
                     try {
+                        this.updateStatus(`Trying: ${option.name}`, 'info');
                         const success = await this.tryLoadGLTF(option);
                         if (success) {
-                            this.updateStatus(`Loaded: ${option.name}`, 'success');
+                            this.updateStatus(`✓ Loaded: ${option.name}`, 'success');
+                            
+                            // Hide test objects since we have the real model
+                            this.hideTestObjects();
                             return;
                         }
                     } catch (error) {
                         console.warn(`Failed to load ${option.name}:`, error);
-                        this.updateStatus(`Failed to load ${option.name}`, 'warning');
+                        this.updateStatus(`✗ Failed: ${option.name}`, 'warning');
                         // Continue to next model
                     }
                 }
                 
-                // If no model loads, create a fallback 3D object
+                // If no external models load, create a fallback but keep test objects visible
                 this.createFallbackModel();
                 this.updateStatus('Using fallback 3D model', 'warning');
+            }
+
+            hideTestObjects() {
+                // Hide or remove test objects when real model loads
+                const testPlane = this.markerRoot.getObjectByName('testPlane');
+                const testCube = this.markerRoot.getObjectByName('testCube');
+                
+                if (testPlane) {
+                    testPlane.visible = false; // Keep it for reference but hide it
+                }
+                if (testCube) {
+                    testCube.visible = false; // Keep it for reference but hide it
+                }
+                
+                console.log('Test objects hidden - real model loaded');
             }
 
             createFallbackModel() {
@@ -599,7 +626,7 @@
             }
 
             handleModelLoaded(model) {
-                // Remove any existing loaded model (but keep test objects)
+                // Remove any existing loaded model (but keep test objects for now)
                 if (this.currentModel) {
                     this.markerRoot.remove(this.currentModel);
                 }
@@ -619,34 +646,50 @@
                             if (child.material.map) {
                                 child.material.map.flipY = false;
                             }
+                            
+                            // Ensure materials are visible
+                            if (child.material.transparent === undefined) {
+                                child.material.transparent = false;
+                            }
                         }
                     }
                 });
 
-                // CRITICAL: Position model relative to marker coordinate system
-                // AR.js marker coordinate system: Y is up, marker is at origin
-                model.position.set(0, 0, 0);      // Start at marker center
-                model.rotation.set(0, 0, 0);      // No rotation
-                model.scale.set(0.3, 0.3, 0.3);   // Medium scale
+                // CRITICAL: Position E-TERRY model appropriately
+                // Start with marker center
+                model.position.set(0, 0, 0);
+                model.rotation.set(0, 0, 0);
+                
+                // Scale for E-TERRY model - adjust as needed
+                model.scale.set(0.1, 0.1, 0.1);  // Start smaller and adjust
 
                 // Calculate bounding box to position properly
                 const box = new THREE.Box3().setFromObject(model);
                 const size = box.getSize(new THREE.Vector3());
                 
                 // Position model so its bottom sits on the marker plane
-                model.position.y = -box.min.y * model.scale.y;
+                const bottomY = box.min.y * model.scale.y;
+                model.position.y = -bottomY;
+                
+                // Center the model horizontally if needed
+                const centerX = (box.min.x + box.max.x) * 0.5 * model.scale.x;
+                const centerZ = (box.min.z + box.max.z) * 0.5 * model.scale.z;
+                model.position.x = -centerX;
+                model.position.z = -centerZ;
                 
                 // Give the model a unique name
-                model.name = 'loadedModel';
+                model.name = 'eTerryModel';
 
                 // Add to markerRoot - this is CRITICAL for AR tracking
                 this.markerRoot.add(model);
                 
-                console.log(`Model added to markerRoot. Position: ${model.position.x}, ${model.position.y}, ${model.position.z}`);
+                console.log(`E-TERRY Model added to markerRoot`);
+                console.log(`Position: ${model.position.x.toFixed(3)}, ${model.position.y.toFixed(3)}, ${model.position.z.toFixed(3)}`);
+                console.log(`Scale: ${model.scale.x.toFixed(3)}`);
+                console.log(`Bounding box size: ${size.x.toFixed(3)} x ${size.y.toFixed(3)} x ${size.z.toFixed(3)}`);
                 console.log(`Model loaded with ${meshCount} meshes`);
                 console.log(`Total objects in markerRoot: ${this.markerRoot.children.length}`);
                 
-                this.updateStatus(`3D Model Ready (${meshCount} meshes)`, 'success');
                 this.updateDebugInfo();
             }
 

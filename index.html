@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>E-TERRY AR - Improved Detection</title>
+    <title>E-TERRY AR - Fullscreen</title>
     
     <!-- HTTPS required for mobile camera access -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -26,13 +26,18 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #000;
-            overflow: hidden;
             position: fixed;
-            width: 100%;
-            height: 100%;
             -webkit-user-select: none;
             user-select: none;
         }
@@ -68,7 +73,7 @@
         }
 
         .loading-title {
-            font-size: 5rem;
+            font-size: 2rem;
             font-weight: 700;
             margin-bottom: 15px;
             color: #FF0000; /* E-TERRY red */
@@ -139,13 +144,23 @@
             border-radius: 2px;
         }
 
+        /* Canvas styling for fullscreen */
+        canvas {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: block;
+        }
+
         /* Camera video styling */
         video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
             object-fit: cover;
             z-index: -1;
         }
@@ -192,17 +207,17 @@
         }
 
         function setupScene() {
-            // Initialize scene - EXACTLY like working OBJ code
+            // Initialize scene
             scene = new THREE.Scene();
 
-            // Simple lighting - EXACTLY like working code
+            // Simple lighting
             let ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
             scene.add(ambientLight);
 
             camera = new THREE.Camera();
             scene.add(camera);
 
-            // Setup renderer - EXACTLY like working code
+            // Setup renderer with fullscreen from start
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true
@@ -210,11 +225,16 @@
 
             renderer.setClearColor(new THREE.Color('lightgrey'), 0);
             
-            // Use fixed size initially like working code, then handle resize
-            renderer.setSize(640, 480);
+            // Set to window size from the beginning
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
             renderer.domElement.style.position = 'absolute';
-            renderer.domElement.style.top = '0px';
-            renderer.domElement.style.left = '0px';
+            renderer.domElement.style.top = '0';
+            renderer.domElement.style.left = '0';
+            renderer.domElement.style.width = '100vw';
+            renderer.domElement.style.height = '100vh';
+            
             document.body.appendChild(renderer.domElement);
 
             clock = new THREE.Clock();
@@ -223,29 +243,53 @@
         }
 
         function setupAR() {
-            // EXACTLY like working OBJ code
             arToolkitSource = new THREEx.ArToolkitSource({
-                sourceType: 'webcam'
+                sourceType: 'webcam',
+                // Ensure webcam fills the screen
+                sourceWidth: window.innerHeight,
+                sourceHeight: window.innerWidth,
+                displayWidth: window.innerWidth,
+                displayHeight: window.innerHeight
             });
 
             function onResize() {
-                arToolkitSource.onResize();
-                arToolkitSource.copySizeTo(renderer.domElement);
-                if (arToolkitContext && arToolkitContext.arController !== null) {
-                    arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
+                // Handle resize to maintain fullscreen
+                arToolkitSource.onResizeElement();
+                arToolkitSource.copyElementSizeTo(renderer.domElement);
+                
+                if (window.innerWidth > window.innerHeight) {
+                    // Landscape
+                    arToolkitSource.domElement.style.width = window.innerWidth + 'px';
+                    arToolkitSource.domElement.style.height = 'auto';
+                } else {
+                    // Portrait
+                    arToolkitSource.domElement.style.height = window.innerHeight + 'px';
+                    arToolkitSource.domElement.style.width = 'auto';
                 }
+                
+                if (arToolkitContext && arToolkitContext.arController !== null) {
+                    arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+                }
+                
+                // Update renderer size
+                renderer.setSize(window.innerWidth, window.innerHeight);
             }
 
             arToolkitSource.init(function onReady() {
-                onResize();
+                // Ensure video element is also fullscreen
+                setTimeout(() => {
+                    onResize();
+                }, 1000);
                 
-                // Create AR context after source is ready - EXACTLY like working code
+                // Create AR context after source is ready
                 arToolkitContext = new THREEx.ArToolkitContext({
                     cameraParametersUrl: 'data/camera_para.dat',
-                    detectionMode: 'mono'
+                    detectionMode: 'mono',
+                    canvasWidth: window.innerWidth,
+                    canvasHeight: window.innerHeight
                 });
 
-                // Copy projection matrix when initialization complete - EXACTLY like working code
+                // Copy projection matrix when initialization complete
                 arToolkitContext.init(function onCompleted() {
                     camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
                     setupMarker();
@@ -256,23 +300,29 @@
                 });
             });
 
-            // Handle resize event - EXACTLY like working code
+            // Handle resize event
             window.addEventListener('resize', function() {
                 onResize();
+            });
+            
+            // Handle orientation change on mobile
+            window.addEventListener('orientationchange', function() {
+                setTimeout(onResize, 500);
             });
         }
 
         function setupMarker() {
-            // Setup marker - EXACTLY like working OBJ code
+            // Setup marker
             markerRoot1 = new THREE.Group();
             scene.add(markerRoot1);
 
             let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
                 type: 'pattern',
-                patternUrl: 'data/eterry-logo.patt'
+                patternUrl: 'data/eterry-logo.patt',
+                changeMatrixMode: 'cameraTransformMatrix'
             });
 
-            // Add test plane - EXACTLY like working code
+            // Add test plane
             let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
             let material1 = new THREE.MeshBasicMaterial({ 
                 color: 0x0000ff, 
@@ -333,7 +383,7 @@
             loader.load(
                 option.path,
                 function(gltf) {
-                    // Success - handle model like working OBJ code
+                    // Success - handle model
                     handleModelLoaded(gltf.scene, option.name);
                 },
                 function(progress) {
@@ -359,7 +409,7 @@
 
             currentModel = model;
 
-            // Process model like working OBJ code
+            // Process model
             model.traverse(function(child) {
                 if (child.isMesh) {
                     child.material.side = THREE.DoubleSide;
@@ -367,7 +417,7 @@
                 }
             });
 
-            // Position model - EXACTLY like working OBJ code
+            // Position model
             model.position.set(0, 0, 0);
             model.rotation.set(0, 0, 0);
             model.scale.set(1, 1, 1);
@@ -388,7 +438,7 @@
             const material = new THREE.MeshNormalMaterial();
             const cube = new THREE.Mesh(geometry, material);
             
-            // Position like working code
+            // Position
             cube.position.set(0, 0.25, 0);
             cube.rotation.set(0, 0, 0);
             cube.scale.set(1, 1, 1);
@@ -409,7 +459,7 @@
             animate();
         }
 
-        // Animation loop - EXACTLY like working OBJ code
+        // Animation loop
         function animate() {
             requestAnimationFrame(animate);
             deltaTime = clock.getDelta();
@@ -419,7 +469,7 @@
         }
 
         function update() {
-            // Update artoolkit on every frame - EXACTLY like working code
+            // Update artoolkit on every frame
             if (arToolkitSource && arToolkitSource.ready !== false && arToolkitContext) {
                 arToolkitContext.update(arToolkitSource.domElement);
             }

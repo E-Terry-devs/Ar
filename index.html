@@ -44,45 +44,44 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(135deg, #636161 0%, #575656 50%, #d5d5d5 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            color: #333;
+            color: white;
             text-align: center;
             padding: 20px;
         }
 
         .loading-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             border-radius: 20px;
             padding: 30px 20px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
             max-width: 90vw;
             width: 100%;
             max-width: 400px;
         }
 
         .loading-title {
-            font-size: 3rem;
+            font-size: 2rem;
             font-weight: 700;
             margin-bottom: 15px;
-            background: linear-gradient(45deg, #dc2626, #ef4444);
+            background: linear-gradient(45deg, #fff, #f0f0f0);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            color: #dc2626; /* Fallback for browsers that don't support gradient text */
         }
 
         .spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(220, 38, 38, 0.2);
-            border-top: 3px solid #dc2626;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid #fff;
             border-radius: 50%;
             animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
             margin: 15px auto;
@@ -96,10 +95,9 @@
 
         .loading-text {
             font-size: 1rem;
-            opacity: 0.8;
+            opacity: 0.9;
             margin: 10px 0;
             line-height: 1.4;
-            color: #666;
         }
 
         /* Mobile status bar */
@@ -128,7 +126,7 @@
         .progress-container {
             width: 100%;
             height: 4px;
-            background: rgba(220, 38, 38, 0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 2px;
             margin-top: 15px;
             overflow: hidden;
@@ -136,7 +134,7 @@
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #dc2626, #ef4444);
+            background: linear-gradient(90deg, #4CAF50, #2196F3);
             width: 0%;
             transition: width 0.3s ease;
             border-radius: 2px;
@@ -147,17 +145,10 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw !important;
-            height: 100vh !important;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
             z-index: -1;
-        }
-        
-        /* Ensure canvas takes full screen */
-        canvas {
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: cover;
         }
     </style>
 </head>
@@ -220,8 +211,8 @@
 
             renderer.setClearColor(new THREE.Color('lightgrey'), 0);
             
-            // Start with window size for better mobile resolution
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            // Use fixed size initially like working code, then handle resize
+            renderer.setSize(640, 480);
             renderer.domElement.style.position = 'absolute';
             renderer.domElement.style.top = '0px';
             renderer.domElement.style.left = '0px';
@@ -235,7 +226,7 @@
         function setupAR() {
             // EXACTLY like working OBJ code
             arToolkitSource = new THREEx.ArToolkitSource({
-                sourceType: 'webcam',
+                sourceType: 'webcam'
             });
 
             function onResize() {
@@ -247,14 +238,12 @@
             }
 
             arToolkitSource.init(function onReady() {
-                // Call onResize immediately after source is ready
                 onResize();
                 
                 // Create AR context after source is ready - EXACTLY like working code
                 arToolkitContext = new THREEx.ArToolkitContext({
                     cameraParametersUrl: 'data/camera_para.dat',
-                    detectionMode: 'mono',
-                    patternRatio: 1.0  // Increase pattern ratio for better detection
+                    detectionMode: 'mono'
                 });
 
                 // Copy projection matrix when initialization complete - EXACTLY like working code
@@ -281,10 +270,10 @@
 
             let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
                 type: 'pattern',
-                patternUrl: 'data/eterry-logo.patt',
+                patternUrl: 'data/eterry-logo.patt'
             });
 
-            // Add test plane - EXACTLY like working code with same geometry
+            // Add test plane - EXACTLY like working code
             let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
             let material1 = new THREE.MeshBasicMaterial({ 
                 color: 0x0000ff, 

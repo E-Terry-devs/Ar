@@ -393,9 +393,9 @@
                         const contextConfig = {
                             cameraParametersUrl: 'data/camera_para.dat',
                             detectionMode: 'mono',
-                            // maxDetectionRate: 60,
-                            // canvasWidth: this.isMobile ? 640 : 1280,
-                            // canvasHeight: this.isMobile ? 480 : 960
+                            maxDetectionRate: 60,
+                            canvasWidth: this.isMobile ? 640 : 1280,
+                            canvasHeight: this.isMobile ? 480 : 960
                         };
 
                         this.arToolkitContext = new THREEx.ArToolkitContext(contextConfig);
@@ -416,19 +416,20 @@
             }
 
             setupMarker() {
-                // Setup marker
+                // Setup marker group
                 this.markerRoot = new THREE.Group();
+                this.markerRoot.name = 'markerRoot';
                 this.scene.add(this.markerRoot);
 
-                // Enhanced marker controls with better detection parameters
+                // IMPORTANT: Use the correct matrix mode for AR.js
                 this.markerControls = new THREEx.ArMarkerControls(
                     this.arToolkitContext, 
                     this.markerRoot, 
                     {
                         type: 'pattern',
                         patternUrl: 'data/eterry-logo.patt',
-                        changeMatrixMode: 'cameraTransformMatrix',
-                        minConfidence: 0.6  // Lower threshold for better detection
+                        // Remove changeMatrixMode - let AR.js handle it automatically
+                        minConfidence: 0.6
                     }
                 );
 
@@ -441,18 +442,29 @@
                     this.onMarkerLost();
                 });
 
-                // Add test plane with better visibility - make it less prominent since we have a 3D model
-                const geometry = new THREE.PlaneBufferGeometry(0.5, 0.5, 4, 4);
+                // Add test plane DIRECTLY to markerRoot to ensure it follows the marker
+                const geometry = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
                 const material = new THREE.MeshBasicMaterial({ 
                     color: 0xE50914, 
-                    opacity: 0.3,  // More transparent
+                    opacity: 0.5,
                     transparent: true,
                     side: THREE.DoubleSide
                 });
                 const testMesh = new THREE.Mesh(geometry, material);
-                testMesh.rotation.x = -Math.PI/2;
-                testMesh.name = 'testPlane'; // Name it so we can find it later
+                testMesh.rotation.x = -Math.PI/2;  // Lay flat on marker
+                testMesh.position.set(0, 0, 0);    // Center on marker
+                testMesh.name = 'testPlane';
                 this.markerRoot.add(testMesh);
+
+                // Add a simple cube that should definitely be visible
+                const cubeGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                const testCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                testCube.position.set(0, 0.25, 0);  // Half cube height above marker
+                testCube.name = 'testCube';
+                this.markerRoot.add(testCube);
+
+                console.log('Marker setup complete. Objects in markerRoot:', this.markerRoot.children.length);
             }
 
             onMarkerFound() {
@@ -463,6 +475,14 @@
                 const indicator = document.getElementById('detectionIndicator');
                 indicator.style.display = 'block';
                 indicator.classList.add('detection-active');
+                
+                // Make sure markerRoot is visible
+                this.markerRoot.visible = true;
+                
+                // Log marker transform for debugging
+                console.log('Marker found! MarkerRoot matrix:', this.markerRoot.matrix.elements);
+                console.log('MarkerRoot position:', this.markerRoot.position);
+                console.log('MarkerRoot children:', this.markerRoot.children.length);
                 
                 this.updateStatus('Marker Detected!', 'success');
                 this.updateDebugInfo();
@@ -475,6 +495,10 @@
                 indicator.style.display = 'none';
                 indicator.classList.remove('detection-active');
                 
+                // Keep markerRoot visible even when marker is lost (for debugging)
+                // this.markerRoot.visible = false;
+                
+                console.log('Marker lost');
                 this.updateDebugInfo();
             }
 
@@ -575,7 +599,7 @@
             }
 
             handleModelLoaded(model) {
-                // Remove any existing model (but keep the test plane for reference)
+                // Remove any existing loaded model (but keep test objects)
                 if (this.currentModel) {
                     this.markerRoot.remove(this.currentModel);
                 }
@@ -599,15 +623,29 @@
                     }
                 });
 
-                // Position model appropriately - make it more visible
-                model.position.set(0, 0.2, 0);  // Higher above the plane
-                model.rotation.set(0, 0, 0);
-                model.scale.set(0.4, 0.4, 0.4);  // Larger scale for visibility
+                // CRITICAL: Position model relative to marker coordinate system
+                // AR.js marker coordinate system: Y is up, marker is at origin
+                model.position.set(0, 0, 0);      // Start at marker center
+                model.rotation.set(0, 0, 0);      // No rotation
+                model.scale.set(0.3, 0.3, 0.3);   // Medium scale
 
-                // Add to marker - this makes it appear when marker is detected
+                // Calculate bounding box to position properly
+                const box = new THREE.Box3().setFromObject(model);
+                const size = box.getSize(new THREE.Vector3());
+                
+                // Position model so its bottom sits on the marker plane
+                model.position.y = -box.min.y * model.scale.y;
+                
+                // Give the model a unique name
+                model.name = 'loadedModel';
+
+                // Add to markerRoot - this is CRITICAL for AR tracking
                 this.markerRoot.add(model);
                 
+                console.log(`Model added to markerRoot. Position: ${model.position.x}, ${model.position.y}, ${model.position.z}`);
                 console.log(`Model loaded with ${meshCount} meshes`);
+                console.log(`Total objects in markerRoot: ${this.markerRoot.children.length}`);
+                
                 this.updateStatus(`3D Model Ready (${meshCount} meshes)`, 'success');
                 this.updateDebugInfo();
             }
@@ -687,9 +725,17 @@
                     `Detection Count: ${this.detectionCount}`,
                     `Last Detection: ${this.lastDetectionTime ? new Date(this.lastDetectionTime).toLocaleTimeString() : 'Never'}`,
                     '',
-                    `3D Model Loaded: ${this.currentModel ? 'YES' : 'NO'}`,
-                    `Objects in Scene: ${this.markerRoot ? this.markerRoot.children.length : 0}`
+                    `MarkerRoot Visible: ${this.markerRoot ? this.markerRoot.visible : 'N/A'}`,
+                    `Objects in MarkerRoot: ${this.markerRoot ? this.markerRoot.children.length : 0}`,
+                    `3D Model Loaded: ${this.currentModel ? 'YES' : 'NO'}`
                 ];
+
+                if (this.markerRoot && this.markerRoot.children.length > 0) {
+                    info.push('Objects:');
+                    this.markerRoot.children.forEach((child, index) => {
+                        info.push(`  ${index}: ${child.name || child.type} (visible: ${child.visible})`);
+                    });
+                }
 
                 if (this.cameraInfo) {
                     info.push(`Camera: ${this.cameraInfo.videoWidth}x${this.cameraInfo.videoHeight}`);

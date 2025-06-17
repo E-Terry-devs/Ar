@@ -238,12 +238,6 @@
         Marker Detected
     </div>
 
-    <button class="debug-toggle" onclick="toggleDebug()">Debug</button>
-
-    <div id="debugInfo">
-        <div id="debugContent">Debug info will appear here...</div>
-    </div>
-
     <script>
         // Wait for all scripts to load
         window.addEventListener('load', function() {
@@ -252,11 +246,6 @@
 
         function initializeApp() {
             new MobileETERRYAR();
-        }
-
-        function toggleDebug() {
-            const debugInfo = document.getElementById('debugInfo');
-            debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
         }
 
         class MobileETERRYAR {
@@ -284,25 +273,13 @@
                 // Mobile optimization
                 this.isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                 
-                // Model options - prioritize your E-TERRY model
+                // Model options - only compressed E-TERRY model
                 this.modelOptions = [
                     {
                         name: 'E-TERRY Model',
                         path: 'models/ETERRY_compressed.glb',
                         type: 'glb',
                         compressed: true
-                    },
-                    {
-                        name: 'E-TERRY Uncompressed',
-                        path: 'models/ETERRY.glb',
-                        type: 'glb',
-                        compressed: false
-                    },
-                    {
-                        name: 'Sample Robot Model (Fallback)',
-                        path: 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
-                        type: 'glb',
-                        compressed: false
                     }
                 ];
 
@@ -427,14 +404,12 @@
                 this.markerRoot.name = 'markerRoot';
                 this.scene.add(this.markerRoot);
 
-                // IMPORTANT: Use the correct matrix mode for AR.js
                 this.markerControls = new THREEx.ArMarkerControls(
                     this.arToolkitContext, 
                     this.markerRoot, 
                     {
                         type: 'pattern',
                         patternUrl: 'data/eterry-logo.patt',
-                        // Remove changeMatrixMode - let AR.js handle it automatically
                         minConfidence: 0.6
                     }
                 );
@@ -448,7 +423,7 @@
                     this.onMarkerLost();
                 });
 
-                // Add test plane DIRECTLY to markerRoot to ensure it follows the marker
+                // Add test plane
                 const geometry = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
                 const material = new THREE.MeshBasicMaterial({ 
                     color: 0xE50914, 
@@ -457,20 +432,18 @@
                     side: THREE.DoubleSide
                 });
                 const testMesh = new THREE.Mesh(geometry, material);
-                testMesh.rotation.x = -Math.PI/2;  // Lay flat on marker
-                testMesh.position.set(0, 0, 0);    // Center on marker
+                testMesh.rotation.x = -Math.PI/2;
+                testMesh.position.set(0, 0, 0);
                 testMesh.name = 'testPlane';
                 this.markerRoot.add(testMesh);
 
-                // Add a simple cube that should definitely be visible
+                // Add test cube
                 const cubeGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
                 const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
                 const testCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-                testCube.position.set(0, 0.25, 0);  // Half cube height above marker
+                testCube.position.set(0, 0.25, 0);
                 testCube.name = 'testCube';
                 this.markerRoot.add(testCube);
-
-                console.log('Marker setup complete. Objects in markerRoot:', this.markerRoot.children.length);
             }
 
             onMarkerFound() {
@@ -482,16 +455,8 @@
                 indicator.style.display = 'block';
                 indicator.classList.add('detection-active');
                 
-                // Make sure markerRoot is visible
                 this.markerRoot.visible = true;
-                
-                // Log marker transform for debugging
-                console.log('Marker found! MarkerRoot matrix:', this.markerRoot.matrix.elements);
-                console.log('MarkerRoot position:', this.markerRoot.position);
-                console.log('MarkerRoot children:', this.markerRoot.children.length);
-                
                 this.updateStatus('Marker Detected!', 'success');
-                this.updateDebugInfo();
             }
 
             onMarkerLost() {
@@ -500,56 +465,31 @@
                 const indicator = document.getElementById('detectionIndicator');
                 indicator.style.display = 'none';
                 indicator.classList.remove('detection-active');
-                
-                // Keep markerRoot visible even when marker is lost (for debugging)
-                // this.markerRoot.visible = false;
-                
-                console.log('Marker lost');
-                this.updateDebugInfo();
             }
 
             async loadModel() {
-                this.updateStatus('Loading E-TERRY model...', 'info');
-                
-                // Try loading each model option
-                for (let i = 0; i < this.modelOptions.length; i++) {
-                    const option = this.modelOptions[i];
-                    
-                    try {
-                        this.updateStatus(`Trying: ${option.name}`, 'info');
-                        const success = await this.tryLoadGLTF(option);
-                        if (success) {
-                            this.updateStatus(`✓ Loaded: ${option.name}`, 'success');
-                            
-                            // Hide test objects since we have the real model
-                            this.hideTestObjects();
-                            return;
-                        }
-                    } catch (error) {
-                        console.warn(`Failed to load ${option.name}:`, error);
-                        this.updateStatus(`✗ Failed: ${option.name}`, 'warning');
-                        // Continue to next model
+                try {
+                    const option = this.modelOptions[0];
+                    const success = await this.tryLoadGLTF(option);
+                    if (success) {
+                        this.hideTestObjects();
+                        this.updateStatus('E-TERRY Model Ready', 'success');
+                    } else {
+                        this.createFallbackModel();
+                        this.updateStatus('Using fallback model', 'warning');
                     }
+                } catch (error) {
+                    this.createFallbackModel();
+                    this.updateStatus('Model loading failed', 'warning');
                 }
-                
-                // If no external models load, create a fallback but keep test objects visible
-                this.createFallbackModel();
-                this.updateStatus('Using fallback 3D model', 'warning');
             }
 
             hideTestObjects() {
-                // Hide or remove test objects when real model loads
                 const testPlane = this.markerRoot.getObjectByName('testPlane');
                 const testCube = this.markerRoot.getObjectByName('testCube');
                 
-                if (testPlane) {
-                    testPlane.visible = false; // Keep it for reference but hide it
-                }
-                if (testCube) {
-                    testCube.visible = false; // Keep it for reference but hide it
-                }
-                
-                console.log('Test objects hidden - real model loaded');
+                if (testPlane) testPlane.visible = false;
+                if (testCube) testCube.visible = false;
             }
 
             createFallbackModel() {
@@ -626,71 +566,52 @@
             }
 
             handleModelLoaded(model) {
-                // Remove any existing loaded model (but keep test objects for now)
                 if (this.currentModel) {
                     this.markerRoot.remove(this.currentModel);
                 }
 
                 this.currentModel = model;
 
-                // Process model for better rendering
-                let meshCount = 0;
+                // Process model materials
                 model.traverse((child) => {
-                    if (child.isMesh) {
-                        meshCount++;
-                        if (child.material) {
-                            child.material.side = THREE.DoubleSide;
-                            child.material.needsUpdate = true;
-                            
-                            // Enhance material for better visibility
-                            if (child.material.map) {
-                                child.material.map.flipY = false;
-                            }
-                            
-                            // Ensure materials are visible
-                            if (child.material.transparent === undefined) {
-                                child.material.transparent = false;
-                            }
+                    if (child.isMesh && child.material) {
+                        child.material.side = THREE.DoubleSide;
+                        child.material.needsUpdate = true;
+                        
+                        if (child.material.map) {
+                            child.material.map.flipY = false;
+                        }
+                        
+                        if (child.material.transparent === undefined) {
+                            child.material.transparent = false;
                         }
                     }
                 });
 
-                // CRITICAL: Position E-TERRY model appropriately
-                // Start with marker center
+                // Position E-TERRY model
                 model.position.set(0, 0, 0);
                 model.rotation.set(0, 0, 0);
                 
-                // Scale for E-TERRY model - adjust as needed
-                model.scale.set(0.1, 0.1, 0.1);  // Start smaller and adjust
+                // Scale for E-TERRY model - larger size
+                model.scale.set(0.4, 0.4, 0.4);
 
-                // Calculate bounding box to position properly
+                // Calculate proper positioning
                 const box = new THREE.Box3().setFromObject(model);
-                const size = box.getSize(new THREE.Vector3());
                 
-                // Position model so its bottom sits on the marker plane
                 const bottomY = box.min.y * model.scale.y;
                 model.position.y = -bottomY;
                 
-                // Center the model horizontally if needed
                 const centerX = (box.min.x + box.max.x) * 0.5 * model.scale.x;
                 const centerZ = (box.min.z + box.max.z) * 0.5 * model.scale.z;
                 model.position.x = -centerX;
                 model.position.z = -centerZ;
                 
-                // Give the model a unique name
                 model.name = 'eTerryModel';
 
-                // Add to markerRoot - this is CRITICAL for AR tracking
+                // Store base Y position for animation
+                this.baseModelY = model.position.y;
+                
                 this.markerRoot.add(model);
-                
-                console.log(`E-TERRY Model added to markerRoot`);
-                console.log(`Position: ${model.position.x.toFixed(3)}, ${model.position.y.toFixed(3)}, ${model.position.z.toFixed(3)}`);
-                console.log(`Scale: ${model.scale.x.toFixed(3)}`);
-                console.log(`Bounding box size: ${size.x.toFixed(3)} x ${size.y.toFixed(3)} x ${size.z.toFixed(3)}`);
-                console.log(`Model loaded with ${meshCount} meshes`);
-                console.log(`Total objects in markerRoot: ${this.markerRoot.children.length}`);
-                
-                this.updateDebugInfo();
             }
 
             startAnimation() {
@@ -752,49 +673,6 @@
                         displayHeight: window.innerHeight
                     };
                 }
-            }
-
-            updateDebugInfo() {
-                const debugContent = document.getElementById('debugContent');
-                if (!debugContent) return;
-
-                const info = [
-                    `Device: ${this.isMobile ? 'Mobile' : 'Desktop'}`,
-                    `Screen: ${window.innerWidth}x${window.innerHeight}`,
-                    `Pixel Ratio: ${window.devicePixelRatio}`,
-                    '',
-                    `AR Status: ${this.arToolkitContext ? 'Ready' : 'Loading'}`,
-                    `Marker Visible: ${this.isMarkerVisible ? 'YES' : 'NO'}`,
-                    `Detection Count: ${this.detectionCount}`,
-                    `Last Detection: ${this.lastDetectionTime ? new Date(this.lastDetectionTime).toLocaleTimeString() : 'Never'}`,
-                    '',
-                    `MarkerRoot Visible: ${this.markerRoot ? this.markerRoot.visible : 'N/A'}`,
-                    `Objects in MarkerRoot: ${this.markerRoot ? this.markerRoot.children.length : 0}`,
-                    `3D Model Loaded: ${this.currentModel ? 'YES' : 'NO'}`
-                ];
-
-                if (this.markerRoot && this.markerRoot.children.length > 0) {
-                    info.push('Objects:');
-                    this.markerRoot.children.forEach((child, index) => {
-                        info.push(`  ${index}: ${child.name || child.type} (visible: ${child.visible})`);
-                    });
-                }
-
-                if (this.cameraInfo) {
-                    info.push(`Camera: ${this.cameraInfo.videoWidth}x${this.cameraInfo.videoHeight}`);
-                }
-
-                if (this.currentModel) {
-                    let meshCount = 0;
-                    this.currentModel.traverse((child) => {
-                        if (child.isMesh) meshCount++;
-                    });
-                    info.push(`Model Meshes: ${meshCount}`);
-                    info.push(`Model Position: ${this.currentModel.position.x.toFixed(2)}, ${this.currentModel.position.y.toFixed(2)}, ${this.currentModel.position.z.toFixed(2)}`);
-                    info.push(`Model Scale: ${this.currentModel.scale.x.toFixed(2)}`);
-                }
-
-                debugContent.innerHTML = info.join('<br>');
             }
 
             updateStatus(text, type = 'info') {

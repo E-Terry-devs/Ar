@@ -68,7 +68,7 @@
         }
 
         .loading-title {
-            font-size: 2rem;
+            font-size: 5rem;
             font-weight: 700;
             margin-bottom: 15px;
             color: #FF0000; /* E-TERRY red */
@@ -92,7 +92,7 @@
         }
 
         .loading-text {
-            font-size: 5rem;
+            font-size: 1rem;
             opacity: 0.9;
             margin: 10px 0;
             line-height: 1.4;
@@ -158,38 +158,319 @@
             <h1 class="loading-title">E-TERRY AR</h1>
             <div class="spinner"></div>
             <p class="loading-text" id="loadingText">Initializing AR...</p>
-            <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
         </div>
     </div>
-    <div id="statusBar"><span id="statusText">Ready</span></div>
+    
+    <div id="statusBar">
+        <span id="statusText">Ready</span>
+    </div>
+
     <script>
+        // Global variables - simplified like working code
         var scene, camera, renderer, clock, deltaTime, totalTime;
         var arToolkitSource, arToolkitContext;
-        var markerRoot1, mesh1, currentModel;
-        window.addEventListener('load',function(){setTimeout(initialize,500);});
-        function initialize(){updateProgress(10,'Setting up 3D scene...');setupScene();updateProgress(30,'Setting up AR...');setupAR();}
-        function setupScene(){scene=new THREE.Scene();let ambientLight=new THREE.AmbientLight(0xcccccc,1.0);scene.add(ambientLight);camera=new THREE.Camera();scene.add(camera);renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setClearColor(new THREE.Color('lightgrey'),0);renderer.setSize(640,480);renderer.domElement.style.position='absolute';renderer.domElement.style.top='0px';renderer.domElement.style.left='0px';document.body.appendChild(renderer.domElement);clock=new THREE.Clock();deltaTime=0;totalTime=0;}
-        function setupAR(){arToolkitSource=new THREEx.ArToolkitSource({sourceType:'webcam'});
-            function onResize(){arToolkitSource.onResize();arToolkitSource.copySizeTo(renderer.domElement);if(arToolkitContext&&arToolkitContext.arController!==null){arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);}}
-            arToolkitSource.init(function onReady(){
-                onResize();
-                // Append and style the video element to cover full screen
-                if(arToolkitSource.domElement){
-                    document.body.appendChild(arToolkitSource.domElement);
-                    arToolkitSource.domElement.style.position='absolute';
-                    arToolkitSource.domElement.style.top='0px';
-                    arToolkitSource.domElement.style.left='0px';
-                    arToolkitSource.domElement.style.width='100%';
-                    arToolkitSource.domElement.style.height='100%';
-                    arToolkitSource.domElement.style.objectFit='cover';
-                    arToolkitSource.domElement.style.zIndex='-1';
-                }
-                arToolkitContext=new THREEx.ArToolkitContext({cameraParametersUrl:'data/camera_para.dat',detectionMode:'mono'});
-                arToolkitContext.init(function onCompleted(){camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());setupMarker();updateProgress(70,'AR initialized successfully...');loadModel();});
-            });
-            window.addEventListener('resize',function(){onResize();});
+        var markerRoot1;
+        var mesh1, currentModel;
+
+        // Wait for all scripts to load
+        window.addEventListener('load', function() {
+            setTimeout(initialize, 500);
+        });
+
+        function initialize() {
+            updateProgress(10, 'Setting up 3D scene...');
+            setupScene();
+            
+            updateProgress(30, 'Setting up AR...');
+            setupAR();
+            
+            // Model loading and animation start moved to after AR init
         }
-        function setupMarker(){markerRoot1=new THREE.Group();scene.add(markerRoot1);let markerControls1=new THREEx.ArMarkerControls(arToolkitContext,markerRoot1,{type:'pattern',patternUrl:'data/eterry-logo.patt'});let geometry1=new THREE.PlaneBufferGeometry(1,1,4,4);let material1=new THREE.MeshBasicMaterial({color:0x0000ff,opacity:0.5,transparent:true});mesh1=new THREE.Mesh(geometry1,material1);mesh1.rotation.x=-Math.PI/2;markerRoot1.add(mesh1);}    function loadModel(){updateProgress(50,'Loading 3D model...');const modelOptions=[{name:'E-TERRY Compressed GLB',path:'models/ETERRY_compressed.glb',type:'glb',compressed:true},{name:'E-TERRY Standard GLB',path:'models/ETERRY.glb',type:'glb',compressed:false}];tryLoadNextModel(modelOptions,0);}    function tryLoadNextModel(modelOptions,index){if(index>=modelOptions.length){createTestModel();return;}const option=modelOptions[index];if(typeof THREE.GLTFLoader==='undefined'){tryLoadNextModel(modelOptions,index+1);return;}const loader=new THREE.GLTFLoader();if(option.compressed&&typeof THREE.DRACOLoader!=='undefined'){const dracoLoader=new THREE.DRACOLoader();dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');loader.setDRACOLoader(dracoLoader);}loader.load(option.path,function(gltf){handleModelLoaded(gltf.scene,option.name);},function(progress){if(progress.lengthComputable){const percent=Math.round((progress.loaded/progress.total)*100);updateProgress(50+(percent*0.2),`Loading ${option.name}: ${percent}%`);}},function(error){console.log(`Failed to load ${option.name}:`,error);tryLoadNextModel(modelOptions,index+1);});}    function handleModelLoaded(model,modelName){if(currentModel){markerRoot1.remove(currentModel);}currentModel=model;model.traverse(function(child){if(child.isMesh){child.material.side=THREE.DoubleSide;child.material.needsUpdate=true;}});model.position.set(0,0,0);model.rotation.set(0,0,0);model.scale.set(1,1,1);markerRoot1.add(model);updateStatus(`Loaded: ${modelName}`,'success');updateProgress(80,'Model loaded successfully...');startAnimation();}    function createTestModel(){const geometry=new THREE.BoxGeometry(0.5,0.5,0.5);const material=new THREE.MeshNormalMaterial();const cube=new THREE.Mesh(geometry,material);cube.position.set(0,0.25,0);cube.rotation.set(0,0,0);cube.scale.set(1,1,1);markerRoot1.add(cube);currentModel=cube;updateStatus('Test model created (GLB models not found)','warning');updateProgress(80,'Test model ready...');startAnimation();}    function startAnimation(){updateProgress(100,'AR Ready!');setTimeout(()=>hideLoadingScreen(),1000);animate();}    function animate(){requestAnimationFrame(animate);deltaTime=clock.getDelta();totalTime+=deltaTime;update();render();}    function update(){if(arToolkitSource&&arToolkitSource.ready!==false&&arToolkitContext){arToolkitContext.update(arToolkitSource.domElement);}}    function render(){renderer.render(scene,camera);}    function updateProgress(percent,text){const progressBar=document.getElementById('progressBar');const loadingText=document.getElementById('loadingText');if(progressBar)progressBar.style.width=`${percent}%`;if(loadingText)loadingText.textContent=text;}    function updateStatus(text,type='info'){const statusBar=document.getElementById('statusBar');const statusText=document.getElementById('statusText');if(statusText)statusText.textContent=text;if(statusBar){statusBar.className='';statusBar.classList.add(`status-${type}`);statusBar.style.display='block';if(type==='success'){setTimeout(()=>{statusBar.style.display='none';},3000);}}}    function hideLoadingScreen(){const loadingScreen=document.getElementById('loadingScreen');if(loadingScreen){loadingScreen.style.opacity='0';loadingScreen.style.transition='opacity 1s ease';setTimeout(()=>{loadingScreen.style.display='none';},1000);} }    window.addEventListener('error',function(e){console.log('Error:',e.error);});
+
+        function setupScene() {
+            // Initialize scene - EXACTLY like working OBJ code
+            scene = new THREE.Scene();
+
+            // Simple lighting - EXACTLY like working code
+            let ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
+            scene.add(ambientLight);
+
+            camera = new THREE.Camera();
+            scene.add(camera);
+
+            // Setup renderer - EXACTLY like working code
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true
+            });
+
+            renderer.setClearColor(new THREE.Color('lightgrey'), 0);
+            
+            // Use fixed size initially like working code, then handle resize
+            renderer.setSize(640, 480);
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = '0px';
+            renderer.domElement.style.left = '0px';
+            document.body.appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+            deltaTime = 0;
+            totalTime = 0;
+        }
+
+        function setupAR() {
+            // EXACTLY like working OBJ code
+            arToolkitSource = new THREEx.ArToolkitSource({
+                sourceType: 'webcam'
+            });
+
+            function onResize() {
+                arToolkitSource.onResize();
+                arToolkitSource.copySizeTo(renderer.domElement);
+                if (arToolkitContext && arToolkitContext.arController !== null) {
+                    arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
+                }
+            }
+
+            arToolkitSource.init(function onReady() {
+                onResize();
+                
+                // Create AR context after source is ready - EXACTLY like working code
+                arToolkitContext = new THREEx.ArToolkitContext({
+                    cameraParametersUrl: 'data/camera_para.dat',
+                    detectionMode: 'mono'
+                });
+
+                // Copy projection matrix when initialization complete - EXACTLY like working code
+                arToolkitContext.init(function onCompleted() {
+                    camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+                    setupMarker();
+                    updateProgress(70, 'AR initialized successfully...');
+                    
+                    // Load model after AR is ready
+                    loadModel();
+                });
+            });
+
+            // Handle resize event - EXACTLY like working code
+            window.addEventListener('resize', function() {
+                onResize();
+            });
+        }
+
+        function setupMarker() {
+            // Setup marker - EXACTLY like working OBJ code
+            markerRoot1 = new THREE.Group();
+            scene.add(markerRoot1);
+
+            let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
+                type: 'pattern',
+                patternUrl: 'data/eterry-logo.patt'
+            });
+
+            // Add test plane - EXACTLY like working code
+            let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
+            let material1 = new THREE.MeshBasicMaterial({ 
+                color: 0x0000ff, 
+                opacity: 0.5,
+                transparent: true
+            });
+            mesh1 = new THREE.Mesh(geometry1, material1);
+            mesh1.rotation.x = -Math.PI / 2;
+            markerRoot1.add(mesh1);
+        }
+
+        function loadModel() {
+            updateProgress(50, 'Loading 3D model...');
+            
+            // Model options to try in order
+            const modelOptions = [
+                {
+                    name: 'E-TERRY Compressed GLB',
+                    path: 'models/ETERRY_compressed.glb',
+                    type: 'glb',
+                    compressed: true
+                },
+                {
+                    name: 'E-TERRY Standard GLB',
+                    path: 'models/ETERRY.glb',
+                    type: 'glb',
+                    compressed: false
+                }
+            ];
+
+            tryLoadNextModel(modelOptions, 0);
+        }
+
+        function tryLoadNextModel(modelOptions, index) {
+            if (index >= modelOptions.length) {
+                // All models failed, create test model
+                createTestModel();
+                return;
+            }
+
+            const option = modelOptions[index];
+            
+            if (typeof THREE.GLTFLoader === 'undefined') {
+                // GLTFLoader not available, try next or fallback
+                tryLoadNextModel(modelOptions, index + 1);
+                return;
+            }
+
+            const loader = new THREE.GLTFLoader();
+
+            // Setup Draco if needed and available
+            if (option.compressed && typeof THREE.DRACOLoader !== 'undefined') {
+                const dracoLoader = new THREE.DRACOLoader();
+                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                loader.setDRACOLoader(dracoLoader);
+            }
+
+            loader.load(
+                option.path,
+                function(gltf) {
+                    // Success - handle model like working OBJ code
+                    handleModelLoaded(gltf.scene, option.name);
+                },
+                function(progress) {
+                    // Progress
+                    if (progress.lengthComputable) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        updateProgress(50 + (percent * 0.2), `Loading ${option.name}: ${percent}%`);
+                    }
+                },
+                function(error) {
+                    // Error - try next model
+                    console.log(`Failed to load ${option.name}:`, error);
+                    tryLoadNextModel(modelOptions, index + 1);
+                }
+            );
+        }
+
+        function handleModelLoaded(model, modelName) {
+            // Remove any existing model
+            if (currentModel) {
+                markerRoot1.remove(currentModel);
+            }
+
+            currentModel = model;
+
+            // Process model like working OBJ code
+            model.traverse(function(child) {
+                if (child.isMesh) {
+                    child.material.side = THREE.DoubleSide;
+                    child.material.needsUpdate = true;
+                }
+            });
+
+            // Position model - EXACTLY like working OBJ code
+            model.position.set(0, 0, 0);
+            model.rotation.set(0, 0, 0);
+            model.scale.set(1, 1, 1);
+
+            // Add to marker
+            markerRoot1.add(model);
+            
+            updateStatus(`Loaded: ${modelName}`, 'success');
+            updateProgress(80, 'Model loaded successfully...');
+            
+            // Start animation after model is loaded
+            startAnimation();
+        }
+
+        function createTestModel() {
+            // Create test cube if models fail
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshNormalMaterial();
+            const cube = new THREE.Mesh(geometry, material);
+            
+            // Position like working code
+            cube.position.set(0, 0.25, 0);
+            cube.rotation.set(0, 0, 0);
+            cube.scale.set(1, 1, 1);
+            
+            markerRoot1.add(cube);
+            currentModel = cube;
+            
+            updateStatus('Test model created (GLB models not found)', 'warning');
+            updateProgress(80, 'Test model ready...');
+            
+            // Start animation after test model is created
+            startAnimation();
+        }
+
+        function startAnimation() {
+            updateProgress(100, 'AR Ready!');
+            setTimeout(() => hideLoadingScreen(), 1000);
+            animate();
+        }
+
+        // Animation loop - EXACTLY like working OBJ code
+        function animate() {
+            requestAnimationFrame(animate);
+            deltaTime = clock.getDelta();
+            totalTime += deltaTime;
+            update();
+            render();
+        }
+
+        function update() {
+            // Update artoolkit on every frame - EXACTLY like working code
+            if (arToolkitSource && arToolkitSource.ready !== false && arToolkitContext) {
+                arToolkitContext.update(arToolkitSource.domElement);
+            }
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+
+        // UI Helper Functions
+        function updateProgress(percent, text) {
+            const progressBar = document.getElementById('progressBar');
+            const loadingText = document.getElementById('loadingText');
+            
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (loadingText) loadingText.textContent = text;
+        }
+
+        function updateStatus(text, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            const statusText = document.getElementById('statusText');
+            
+            if (statusText) statusText.textContent = text;
+            if (statusBar) {
+                statusBar.className = '';
+                statusBar.classList.add(`status-${type}`);
+                statusBar.style.display = 'block';
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        statusBar.style.display = 'none';
+                    }, 3000);
+                }
+            }
+        }
+
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                loadingScreen.style.transition = 'opacity 1s ease';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 1000);
+            }
+        }
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.log('Error:', e.error);
+        });
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Mobile E-TERRY AR - Improved Detection</title>
+    <title>E-TERRY AR - Improved Detection</title>
     
     <!-- HTTPS required for mobile camera access -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -122,28 +122,6 @@
         .status-warning { border-left-color: #FF9800; }
         .status-error { border-left-color: #f44336; }
 
-        /* Detection status indicator */
-        #detectionStatus {
-            position: fixed;
-            top: 60px;
-            left: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 99;
-            display: none;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .detecting { background: rgba(255, 193, 7, 0.2); border-color: #FFC107; }
-        .detected { background: rgba(76, 175, 80, 0.2); border-color: #4CAF50; }
-        .lost { background: rgba(244, 67, 54, 0.2); border-color: #f44336; }
-
         /* Progress bar */
         .progress-container {
             width: 100%;
@@ -172,29 +150,6 @@
             object-fit: cover;
             z-index: -1;
         }
-
-        /* AR Instructions */
-        #arInstructions {
-            position: fixed;
-            bottom: 20px;
-            left: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 14px;
-            text-align: center;
-            z-index: 98;
-            display: none;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Prevent zoom on iOS */
-        input, button, select, textarea {
-            font-size: 16px;
-        }
     </style>
 </head>
 
@@ -215,560 +170,301 @@
         <span id="statusText">Ready</span>
     </div>
 
-    <div id="detectionStatus">
-        <span id="detectionText">Searching for marker...</span>
-    </div>
-
-    <div id="arInstructions">
-        <strong>📱 AR Instructions:</strong><br>
-        • Point camera at the marker<br>
-        • Keep steady and well-lit<br>
-        • Maintain 20-50cm distance<br>
-        • Ensure marker is fully visible
-    </div>
-
     <script>
+        // Global variables - simplified like working code
+        var scene, camera, renderer, clock, deltaTime, totalTime;
+        var arToolkitSource, arToolkitContext;
+        var markerRoot1;
+        var mesh1, currentModel;
+
         // Wait for all scripts to load
         window.addEventListener('load', function() {
-            setTimeout(initializeApp, 500);
+            setTimeout(initialize, 500);
         });
 
-        function initializeApp() {
-            new ImprovedETERRYAR();
+        function initialize() {
+            updateProgress(10, 'Setting up 3D scene...');
+            setupScene();
+            
+            updateProgress(30, 'Setting up AR...');
+            setupAR();
+            
+            updateProgress(50, 'Loading 3D model...');
+            loadModel();
+            
+            updateProgress(90, 'Starting AR tracking...');
+            startAnimation();
         }
 
-        class ImprovedETERRYAR {
-            constructor() {
-                // Core Three.js variables
-                this.scene = null;
-                this.camera = null;
-                this.renderer = null;
-                this.clock = null;
-                
-                // AR.js variables
-                this.arToolkitSource = null;
-                this.arToolkitContext = null;
-                this.markerRoot = null;
-                this.markerControls = null;
-                
-                // Model
-                this.currentModel = null;
-                
-                // Detection tracking
-                this.isMarkerVisible = false;
-                this.lastDetectionTime = 0;
-                this.detectionTimeout = null;
-                this.smoothingFactor = 0.8;
-                this.detectionThreshold = 0.5;
-                
-                // Model options
-                this.modelOptions = [
-                    {
-                        name: 'E-TERRY Compressed GLB',
-                        path: 'models/ETERRY_compressed.glb',
-                        type: 'glb',
-                        compressed: true
-                    },
-                    {
-                        name: 'E-TERRY Standard GLB',
-                        path: 'models/ETERRY.glb',
-                        type: 'glb',
-                        compressed: false
-                    }
-                ];
+        function setupScene() {
+            // Initialize scene - EXACTLY like working OBJ code
+            scene = new THREE.Scene();
 
-                this.init();
-            }
+            // Simple lighting - EXACTLY like working code
+            let ambientLight = new THREE.AmbientLight(0xcccccc, 1.0);
+            scene.add(ambientLight);
 
-            async init() {
-                try {
-                    this.updateProgress(10, 'Setting up 3D scene...');
-                    this.setupScene();
-                    
-                    this.updateProgress(30, 'Setting up AR with improved detection...');
-                    await this.setupImprovedAR();
-                    
-                    this.updateProgress(50, 'Loading 3D model...');
-                    await this.loadModel();
-                    
-                    this.updateProgress(90, 'Starting AR tracking...');
-                    this.startAnimation();
-                    
-                    this.updateProgress(100, 'AR Ready!');
-                    setTimeout(() => this.hideLoadingScreen(), 1000);
+            camera = new THREE.Camera();
+            scene.add(camera);
 
-                } catch (error) {
-                    this.showError('Initialization Failed', error.message);
+            // Setup renderer - EXACTLY like working code
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true
+            });
+
+            renderer.setClearColor(new THREE.Color('lightgrey'), 0);
+            
+            // Use fixed size initially like working code, then handle resize
+            renderer.setSize(640, 480);
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = '0px';
+            renderer.domElement.style.left = '0px';
+            document.body.appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+            deltaTime = 0;
+            totalTime = 0;
+        }
+
+        function setupAR() {
+            // EXACTLY like working OBJ code
+            arToolkitSource = new THREEx.ArToolkitSource({
+                sourceType: 'webcam'
+            });
+
+            function onResize() {
+                arToolkitSource.onResize();
+                arToolkitSource.copySizeTo(renderer.domElement);
+                if (arToolkitContext.arController !== null) {
+                    arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
                 }
             }
 
-            updateProgress(percent, text) {
-                const progressBar = document.getElementById('progressBar');
-                const loadingText = document.getElementById('loadingText');
+            arToolkitSource.init(function onReady() {
+                onResize();
                 
-                if (progressBar) progressBar.style.width = `${percent}%`;
-                if (loadingText) loadingText.textContent = text;
-            }
-
-            setupScene() {
-                // Initialize scene
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.Camera();
-                this.scene.add(this.camera);
-
-                // Improved lighting setup
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-                this.scene.add(ambientLight);
-
-                // Add directional light for better model visibility
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-                directionalLight.position.set(1, 1, 1);
-                this.scene.add(directionalLight);
-
-                // Setup renderer with improved settings
-                this.renderer = new THREE.WebGLRenderer({
-                    antialias: true,
-                    alpha: true,
-                    powerPreference: "high-performance"
+                // Create AR context after source is ready - EXACTLY like working code
+                arToolkitContext = new THREEx.ArToolkitContext({
+                    cameraParametersUrl: 'data/camera_para.dat',
+                    detectionMode: 'mono'
                 });
 
-                this.renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.domElement.style.position = 'absolute';
-                this.renderer.domElement.style.top = '0px';
-                this.renderer.domElement.style.left = '0px';
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                
-                document.body.appendChild(this.renderer.domElement);
-
-                this.clock = new THREE.Clock();
-
-                // Handle window resize
-                window.addEventListener('resize', () => this.onWindowResize());
-            }
-
-            async setupImprovedAR() {
-                return new Promise((resolve, reject) => {
-                    // Improved AR source with better camera settings
-                    this.arToolkitSource = new THREEx.ArToolkitSource({
-                        sourceType: 'webcam',
-                        sourceWidth: 1280,
-                        sourceHeight: 720,
-                        displayWidth: window.innerWidth,
-                        displayHeight: window.innerHeight
-                    });
-
-                    this.arToolkitSource.init(() => {
-                        this.updateCameraInfo();
-                        
-                        // Improved AR context with better detection parameters
-                        this.arToolkitContext = new THREEx.ArToolkitContext({
-                            cameraParametersUrl: 'data/camera_para.dat',
-                            detectionMode: 'mono',
-                            maxDetectionRate: 60,
-                            canvasWidth: 80 * 3,
-                            canvasHeight: 60 * 3,
-                            // Improved thresholds for better detection
-                            thresholdMode: 'auto',
-                            threshold: 100,
-                            trackingMode: 'robust',
-                            labelingMode: 'black_region',
-                            patternRatio: 0.5,
-                            imageSmoothingEnabled: true
-                        });
-
-                        this.arToolkitContext.init(() => {
-                            this.camera.projectionMatrix.copy(
-                                this.arToolkitContext.getProjectionMatrix()
-                            );
-                            this.onResize();
-                            this.setupImprovedMarker();
-                            resolve();
-                        });
-                    }, (error) => {
-                        reject(error);
-                    });
+                // Copy projection matrix when initialization complete - EXACTLY like working code
+                arToolkitContext.init(function onCompleted() {
+                    camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+                    setupMarker();
+                    updateProgress(70, 'AR initialized successfully...');
                 });
+            });
+
+            // Handle resize event - EXACTLY like working code
+            window.addEventListener('resize', function() {
+                onResize();
+            });
+        }
+
+        function setupMarker() {
+            // Setup marker - EXACTLY like working OBJ code
+            markerRoot1 = new THREE.Group();
+            scene.add(markerRoot1);
+
+            let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
+                type: 'pattern',
+                patternUrl: 'data/eterry-logo.patt'
+            });
+
+            // Add test plane - EXACTLY like working code
+            let geometry1 = new THREE.PlaneBufferGeometry(1, 1, 4, 4);
+            let material1 = new THREE.MeshBasicMaterial({ 
+                color: 0x0000ff, 
+                opacity: 0.5,
+                transparent: true
+            });
+            mesh1 = new THREE.Mesh(geometry1, material1);
+            mesh1.rotation.x = -Math.PI / 2;
+            markerRoot1.add(mesh1);
+        }
+
+        function loadModel() {
+            // Model options to try in order
+            const modelOptions = [
+                {
+                    name: 'E-TERRY Compressed GLB',
+                    path: 'models/ETERRY_compressed.glb',
+                    type: 'glb',
+                    compressed: true
+                },
+                {
+                    name: 'E-TERRY Standard GLB',
+                    path: 'models/ETERRY.glb',
+                    type: 'glb',
+                    compressed: false
+                }
+            ];
+
+            tryLoadNextModel(modelOptions, 0);
+        }
+
+        function tryLoadNextModel(modelOptions, index) {
+            if (index >= modelOptions.length) {
+                // All models failed, create test model
+                createTestModel();
+                return;
             }
 
-            setupImprovedMarker() {
-                // Setup marker with improved settings
-                this.markerRoot = new THREE.Group();
-                this.scene.add(this.markerRoot);
+            const option = modelOptions[index];
+            
+            if (typeof THREE.GLTFLoader === 'undefined') {
+                // GLTFLoader not available, try next or fallback
+                tryLoadNextModel(modelOptions, index + 1);
+                return;
+            }
 
-                // Improved marker controls with better tracking
-                this.markerControls = new THREEx.ArMarkerControls(
-                    this.arToolkitContext, 
-                    this.markerRoot, 
-                    {
-                        type: 'pattern',
-                        patternUrl: 'data/eterry-logo.patt',
-                        // Improved marker detection settings
-                        changeMatrixMode: 'cameraTransformMatrix',
-                        smooth: true,
-                        smoothCount: 5,
-                        smoothTolerance: 0.01,
-                        smoothThreshold: 2
+            const loader = new THREE.GLTFLoader();
+
+            // Setup Draco if needed and available
+            if (option.compressed && typeof THREE.DRACOLoader !== 'undefined') {
+                const dracoLoader = new THREE.DRACOLoader();
+                dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+                loader.setDRACOLoader(dracoLoader);
+            }
+
+            loader.load(
+                option.path,
+                function(gltf) {
+                    // Success - handle model like working OBJ code
+                    handleModelLoaded(gltf.scene, option.name);
+                },
+                function(progress) {
+                    // Progress
+                    if (progress.lengthComputable) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        updateProgress(50 + (percent * 0.2), `Loading ${option.name}: ${percent}%`);
                     }
-                );
-
-                // Add marker visibility detection
-                this.markerControls.addEventListener('markerFound', () => {
-                    this.onMarkerFound();
-                });
-
-                this.markerControls.addEventListener('markerLost', () => {
-                    this.onMarkerLost();
-                });
-
-                // Add subtle marker plane for debugging (optional)
-                if (window.location.hash.includes('debug')) {
-                    const geometry = new THREE.PlaneBufferGeometry(1, 1);
-                    const material = new THREE.MeshBasicMaterial({ 
-                        color: 0x00ff00, 
-                        opacity: 0.1,
-                        transparent: true,
-                        side: THREE.DoubleSide
-                    });
-                    const testMesh = new THREE.Mesh(geometry, material);
-                    testMesh.rotation.x = -Math.PI/2;
-                    this.markerRoot.add(testMesh);
+                },
+                function(error) {
+                    // Error - try next model
+                    console.log(`Failed to load ${option.name}:`, error);
+                    tryLoadNextModel(modelOptions, index + 1);
                 }
+            );
+        }
+
+        function handleModelLoaded(model, modelName) {
+            // Remove any existing model
+            if (currentModel) {
+                markerRoot1.remove(currentModel);
             }
 
-            onMarkerFound() {
-                this.isMarkerVisible = true;
-                this.lastDetectionTime = Date.now();
-                
-                if (this.detectionTimeout) {
-                    clearTimeout(this.detectionTimeout);
-                    this.detectionTimeout = null;
+            currentModel = model;
+
+            // Process model like working OBJ code
+            model.traverse(function(child) {
+                if (child.isMesh) {
+                    child.material.side = THREE.DoubleSide;
+                    child.material.needsUpdate = true;
                 }
-                
-                this.updateDetectionStatus('Marker detected!', 'detected');
-                
-                // Show model if hidden
-                if (this.currentModel) {
-                    this.currentModel.visible = true;
-                }
+            });
+
+            // Position model - EXACTLY like working OBJ code
+            model.position.set(0, 0, 0);
+            model.rotation.set(0, 0, 0);
+            model.scale.set(1, 1, 1);
+
+            // Add to marker
+            markerRoot1.add(model);
+            
+            updateStatus(`Loaded: ${modelName}`, 'success');
+            updateProgress(80, 'Model loaded successfully...');
+        }
+
+        function createTestModel() {
+            // Create test cube if models fail
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshNormalMaterial();
+            const cube = new THREE.Mesh(geometry, material);
+            
+            // Position like working code
+            cube.position.set(0, 0.25, 0);
+            cube.rotation.set(0, 0, 0);
+            cube.scale.set(1, 1, 1);
+            
+            markerRoot1.add(cube);
+            currentModel = cube;
+            
+            updateStatus('Test model created (GLB models not found)', 'warning');
+            updateProgress(80, 'Test model ready...');
+        }
+
+        function startAnimation() {
+            updateProgress(100, 'AR Ready!');
+            setTimeout(() => hideLoadingScreen(), 1000);
+            animate();
+        }
+
+        // Animation loop - EXACTLY like working OBJ code
+        function animate() {
+            requestAnimationFrame(animate);
+            deltaTime = clock.getDelta();
+            totalTime += deltaTime;
+            update();
+            render();
+        }
+
+        function update() {
+            // Update artoolkit on every frame - EXACTLY like working code
+            if (arToolkitSource.ready !== false) {
+                arToolkitContext.update(arToolkitSource.domElement);
             }
+        }
 
-            onMarkerLost() {
-                // Don't immediately hide - use timeout for stability
-                this.detectionTimeout = setTimeout(() => {
-                    this.isMarkerVisible = false;
-                    this.updateDetectionStatus('Searching for marker...', 'lost');
-                    
-                    // Optionally hide model or keep it visible briefly
-                    // if (this.currentModel) {
-                    //     this.currentModel.visible = false;
-                    // }
-                }, 500); // 500ms delay before considering truly lost
-            }
+        function render() {
+            renderer.render(scene, camera);
+        }
 
-            updateDetectionStatus(text, status) {
-                const detectionStatus = document.getElementById('detectionStatus');
-                const detectionText = document.getElementById('detectionText');
+        // UI Helper Functions
+        function updateProgress(percent, text) {
+            const progressBar = document.getElementById('progressBar');
+            const loadingText = document.getElementById('loadingText');
+            
+            if (progressBar) progressBar.style.width = `${percent}%`;
+            if (loadingText) loadingText.textContent = text;
+        }
+
+        function updateStatus(text, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            const statusText = document.getElementById('statusText');
+            
+            if (statusText) statusText.textContent = text;
+            if (statusBar) {
+                statusBar.className = '';
+                statusBar.classList.add(`status-${type}`);
+                statusBar.style.display = 'block';
                 
-                if (detectionText) detectionText.textContent = text;
-                if (detectionStatus) {
-                    detectionStatus.className = status;
-                    detectionStatus.style.display = 'block';
-                }
-            }
-
-            async loadModel() {
-                // Try loading each model option
-                for (let i = 0; i < this.modelOptions.length; i++) {
-                    const option = this.modelOptions[i];
-                    
-                    try {
-                        const success = await this.tryLoadGLTF(option);
-                        if (success) {
-                            this.updateStatus(`Loaded: ${option.name}`, 'success');
-                            return;
-                        }
-                    } catch (error) {
-                        console.warn(`Failed to load ${option.name}:`, error);
-                    }
-                }
-
-                // If all fail, create test model
-                this.createTestModel();
-            }
-
-            async tryLoadGLTF(modelOption) {
-                return new Promise((resolve, reject) => {
-                    if (typeof THREE.GLTFLoader === 'undefined') {
-                        reject(new Error('GLTFLoader not available'));
-                        return;
-                    }
-
-                    const loader = new THREE.GLTFLoader();
-
-                    // Setup Draco if needed
-                    if (modelOption.compressed && typeof THREE.DRACOLoader !== 'undefined') {
-                        const dracoLoader = new THREE.DRACOLoader();
-                        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-                        loader.setDRACOLoader(dracoLoader);
-                    }
-
-                    loader.load(
-                        modelOption.path,
-                        (gltf) => {
-                            this.handleModelLoaded(gltf.scene);
-                            resolve(true);
-                        },
-                        (progress) => {
-                            if (progress.lengthComputable) {
-                                const percent = Math.round((progress.loaded / progress.total) * 100);
-                                this.updateProgress(50 + (percent * 0.4), `Loading model: ${percent}%`);
-                            }
-                        },
-                        (error) => {
-                            reject(error);
-                        }
-                    );
-                });
-            }
-
-            handleModelLoaded(model) {
-                // Remove any existing model
-                if (this.currentModel) {
-                    this.markerRoot.remove(this.currentModel);
-                }
-
-                this.currentModel = model;
-
-                // Optimize model for AR
-                let meshCount = 0;
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        meshCount++;
-                        
-                        // Improve material settings for AR
-                        if (child.material) {
-                            child.material.side = THREE.DoubleSide;
-                            child.material.needsUpdate = true;
-                            
-                            // Enable shadows if supported
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                            
-                            // Improve material properties for mobile
-                            if (child.material.map) {
-                                child.material.map.generateMipmaps = false;
-                                child.material.map.minFilter = THREE.LinearFilter;
-                                child.material.map.magFilter = THREE.LinearFilter;
-                            }
-                        }
-                    }
-                });
-
-                // Better model positioning and scaling
-                const box = new THREE.Box3().setFromObject(model);
-                const center = box.getCenter(new THREE.Vector3());
-                const size = box.getSize(new THREE.Vector3());
-                
-                // Center the model
-                model.position.sub(center);
-                model.position.y = 0; // Place on marker surface
-                
-                // Scale to reasonable size (adjust as needed)
-                const maxDimension = Math.max(size.x, size.y, size.z);
-                if (maxDimension > 2) {
-                    const scaleFactor = 2 / maxDimension;
-                    model.scale.setScalar(scaleFactor);
-                }
-
-                // Add to marker
-                this.markerRoot.add(model);
-                
-                console.log(`Model loaded with ${meshCount} meshes`);
-            }
-
-            createTestModel() {
-                // Create a more interesting test model
-                const group = new THREE.Group();
-                
-                // Main cube
-                const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                const material = new THREE.MeshLambertMaterial({ 
-                    color: 0x4CAF50,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const cube = new THREE.Mesh(geometry, material);
-                cube.position.set(0, 0.25, 0);
-                cube.castShadow = true;
-                group.add(cube);
-                
-                // Add some orbiting elements
-                for (let i = 0; i < 3; i++) {
-                    const sphereGeometry = new THREE.SphereGeometry(0.05, 8, 6);
-                    const sphereMaterial = new THREE.MeshLambertMaterial({ 
-                        color: new THREE.Color().setHSL(i / 3, 1, 0.5)
-                    });
-                    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-                    sphere.position.set(
-                        Math.cos(i * Math.PI * 2 / 3) * 0.4,
-                        0.25,
-                        Math.sin(i * Math.PI * 2 / 3) * 0.4
-                    );
-                    sphere.castShadow = true;
-                    group.add(sphere);
-                }
-                
-                this.markerRoot.add(group);
-                this.currentModel = group;
-                
-                // Enhanced test animation
-                this.testAnimation = () => {
-                    if (group && this.isMarkerVisible) {
-                        cube.rotation.x += 0.01;
-                        cube.rotation.y += 0.02;
-                        
-                        // Animate orbiting spheres
-                        const time = Date.now() * 0.001;
-                        group.children.slice(1).forEach((sphere, i) => {
-                            const angle = time + (i * Math.PI * 2 / 3);
-                            sphere.position.x = Math.cos(angle) * 0.4;
-                            sphere.position.z = Math.sin(angle) * 0.4;
-                            sphere.position.y = 0.25 + Math.sin(time * 2 + i) * 0.1;
-                        });
-                    }
-                };
-                
-                this.updateStatus('Enhanced test model created', 'warning');
-            }
-
-            startAnimation() {
-                const animate = () => {
-                    requestAnimationFrame(animate);
-                    
-                    // Update AR with better error handling
-                    if (this.arToolkitSource && this.arToolkitSource.ready !== false) {
-                        try {
-                            this.arToolkitContext.update(this.arToolkitSource.domElement);
-                        } catch (error) {
-                            console.warn('AR update error:', error);
-                        }
-                    }
-                    
-                    // Update detection status
-                    this.updateDetectionUI();
-                    
-                    // Run test animation if exists
-                    if (this.testAnimation) {
-                        this.testAnimation();
-                    }
-                    
-                    // Render
-                    this.renderer.render(this.scene, this.camera);
-                };
-                
-                animate();
-            }
-
-            updateDetectionUI() {
-                // Only update if marker controls exist
-                if (!this.markerControls) return;
-                
-                const currentlyVisible = this.markerControls.object3d.visible;
-                
-                if (currentlyVisible && !this.isMarkerVisible) {
-                    this.onMarkerFound();
-                } else if (!currentlyVisible && this.isMarkerVisible && !this.detectionTimeout) {
-                    this.onMarkerLost();
-                }
-            }
-
-            // Improved resize handling
-            onResize() {
-                if (this.arToolkitSource && this.arToolkitSource.ready) {
-                    this.arToolkitSource.onResizeElement();
-                    this.arToolkitSource.copyElementSizeTo(this.renderer.domElement);
-                    
-                    if (this.arToolkitContext && this.arToolkitContext.arController !== null) {
-                        this.arToolkitSource.copyElementSizeTo(this.arToolkitContext.arController.canvas);
-                    }
-                }
-            }
-
-            onWindowResize() {
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.onResize();
-            }
-
-            updateCameraInfo() {
-                const video = this.arToolkitSource.domElement;
-                if (video && video.videoWidth && video.videoHeight) {
-                    console.log(`Camera resolution: ${video.videoWidth}x${video.videoHeight}`);
-                }
-            }
-
-            updateStatus(text, type = 'info') {
-                const statusBar = document.getElementById('statusBar');
-                const statusText = document.getElementById('statusText');
-                
-                if (statusText) statusText.textContent = text;
-                if (statusBar) {
-                    statusBar.className = '';
-                    statusBar.classList.add(`status-${type}`);
-                    statusBar.style.display = 'block';
-                    
-                    if (type === 'success') {
-                        setTimeout(() => {
-                            statusBar.style.display = 'none';
-                        }, 3000);
-                    }
-                }
-            }
-
-            showError(title, message) {
-                this.updateStatus(`Error: ${title}`, 'error');
-                
-                const loadingText = document.getElementById('loadingText');
-                if (loadingText) {
-                    loadingText.textContent = `Error: ${message}`;
-                    loadingText.style.color = '#ff6b6b';
-                }
-            }
-
-            hideLoadingScreen() {
-                const loadingScreen = document.getElementById('loadingScreen');
-                if (loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    loadingScreen.style.transition = 'opacity 1s ease';
+                if (type === 'success') {
                     setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                        // Show AR instructions after loading
-                        this.showARInstructions();
-                    }, 1000);
-                }
-            }
-
-            showARInstructions() {
-                const instructions = document.getElementById('arInstructions');
-                if (instructions) {
-                    instructions.style.display = 'block';
-                    setTimeout(() => {
-                        instructions.style.display = 'none';
-                    }, 5000); // Hide after 5 seconds
+                        statusBar.style.display = 'none';
+                    }, 3000);
                 }
             }
         }
 
-        // Enhanced error handling
-        window.addEventListener('error', (e) => {
-            console.warn('JavaScript error:', e.error);
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                loadingScreen.style.transition = 'opacity 1s ease';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 1000);
+            }
+        }
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.log('Error:', e.error);
         });
-
-        // Add debug mode via URL hash
-        if (window.location.hash.includes('debug')) {
-            console.log('Debug mode enabled');
-        }
     </script>
 </body>
 </html>

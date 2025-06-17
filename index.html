@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Mobile E-TERRY AR - Fixed Alignment</title>
+    <title>Mobile E-TERRY AR - Red Theme</title>
     
     <!-- HTTPS required for mobile camera access -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -37,14 +37,14 @@
             user-select: none;
         }
 
-        /* Mobile-first loading screen */
+        /* Mobile-first loading screen - Updated to grey with E-TERRY red accents */
         #loadingScreen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -56,12 +56,12 @@
         }
 
         .loading-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
             border-radius: 20px;
             padding: 30px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(229, 9, 20, 0.15);
             max-width: 90vw;
             width: 100%;
             max-width: 400px;
@@ -71,7 +71,7 @@
             font-size: 2rem;
             font-weight: 700;
             margin-bottom: 15px;
-            background: linear-gradient(45deg, #fff, #f0f0f0);
+            background: linear-gradient(45deg, #E50914, #ff4757);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -80,8 +80,8 @@
         .spinner {
             width: 50px;
             height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            border-top: 3px solid #fff;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #E50914;
             border-radius: 50%;
             animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
             margin: 15px auto;
@@ -98,9 +98,10 @@
             opacity: 0.9;
             margin: 10px 0;
             line-height: 1.4;
+            color: #e0e0e0;
         }
 
-        /* Mobile status bar */
+        /* Mobile status bar - Updated with E-TERRY red accent */
         #statusBar {
             position: fixed;
             top: 10px;
@@ -114,15 +115,15 @@
             font-size: 13px;
             z-index: 100;
             display: none;
-            border-left: 4px solid #4CAF50;
+            border-left: 4px solid #E50914;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
 
-        .status-success { border-left-color: #4CAF50; }
-        .status-warning { border-left-color: #FF9800; }
-        .status-error { border-left-color: #f44336; }
+        .status-success { border-left-color: #E50914; }
+        .status-warning { border-left-color: #E50914; }
+        .status-error { border-left-color: #E50914; }
 
-        /* Mobile-optimized debug panel */
+        /* Mobile-optimized debug panel - Updated with red accent */
         #debugInfo {
             position: fixed;
             bottom: 10px;
@@ -134,18 +135,18 @@
             padding: 15px;
             border-radius: 10px;
             font-size: 11px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(229, 9, 20, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             max-height: 30vh;
             overflow-y: auto;
             display: none;
         }
 
-        /* Progress bar */
+        /* Progress bar - Updated with E-TERRY red */
         .progress-container {
             width: 100%;
             height: 4px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 2px;
             margin-top: 15px;
             overflow: hidden;
@@ -153,7 +154,7 @@
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #2196F3);
+            background: linear-gradient(90deg, #E50914, #ff4757);
             width: 0%;
             transition: width 0.3s ease;
             border-radius: 2px;
@@ -244,12 +245,7 @@
                         type: 'glb',
                         compressed: true
                     },
-                    {
-                        name: 'E-TERRY Standard GLB',
-                        path: 'models/ETERRY.glb',
-                        type: 'glb',
-                        compressed: false
-                    }
+                    
                 ];
 
                 this.init();
@@ -302,7 +298,7 @@
                 });
 
                 this.renderer.setClearColor(new THREE.Color('lightgrey'), 0);
-                this.renderer.setSize(640, 480);
+                this.renderer.setSize(1920, 1080);
                 this.renderer.domElement.style.position = 'absolute';
                 this.renderer.domElement.style.top = '0px';
                 this.renderer.domElement.style.left = '0px';
@@ -361,10 +357,10 @@
                     }
                 );
 
-                // Add test plane - EXACTLY like working code
+                // Add test plane - Updated with E-TERRY red color
                 const geometry = new THREE.PlaneBufferGeometry(1, 1);
                 const material = new THREE.MeshBasicMaterial({ 
-                    color: 0x0000ff, 
+                    color: 0xE50914, 
                     opacity: 0.5,
                     transparent: true
                 });
@@ -388,9 +384,6 @@
                         // Continue to next model
                     }
                 }
-
-                // If all fail, create test model
-                this.createTestModel();
             }
 
             async tryLoadGLTF(modelOption) {
@@ -456,30 +449,6 @@
 
                 // Add to marker
                 this.markerRoot.add(model);
-            }
-
-            createTestModel() {
-                const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-                const material = new THREE.MeshNormalMaterial();
-                const cube = new THREE.Mesh(geometry, material);
-                
-                // Simple positioning - like working code
-                cube.position.set(0, 0.25, 0);
-                cube.rotation.set(0, 0, 0);
-                cube.scale.set(1, 1, 1);
-                
-                this.markerRoot.add(cube);
-                this.currentModel = cube;
-                
-                // Animate the test cube
-                this.testAnimation = () => {
-                    if (cube) {
-                        cube.rotation.x += 0.01;
-                        cube.rotation.y += 0.02;
-                    }
-                };
-                
-                this.updateStatus('Test model created', 'warning');
             }
 
             startAnimation() {
@@ -551,7 +520,7 @@
                 const loadingText = document.getElementById('loadingText');
                 if (loadingText) {
                     loadingText.textContent = `Error: ${message}`;
-                    loadingText.style.color = '#ff6b6b';
+                    loadingText.style.color = '#E50914';
                 }
             }
 

@@ -38,6 +38,9 @@
             background: #000;
             -webkit-user-select: none;
             user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         /* Mobile-first loading screen - Grey background with red accents */
@@ -144,22 +147,27 @@
             border-radius: 3px;
         }
 
-        /* Camera video styling - full viewport */
+        /* Camera video styling - maintain aspect ratio */
         #arCanvas {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
         }
 
         video {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: cover;
             z-index: -1;
         }
@@ -230,7 +238,7 @@
             camera = new THREE.Camera();
             scene.add(camera);
 
-            // Setup renderer with proper viewport handling
+            // Setup renderer with fixed initial size
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 alpha: true
@@ -238,15 +246,13 @@
 
             renderer.setClearColor(new THREE.Color('lightgrey'), 0);
             
-            // Set renderer to full viewport size
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio || 1);
+            // Use fixed size initially, will be adjusted by AR
+            renderer.setSize(640, 480);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             
             renderer.domElement.style.position = 'absolute';
             renderer.domElement.style.top = '0px';
             renderer.domElement.style.left = '0px';
-            renderer.domElement.style.width = '100%';
-            renderer.domElement.style.height = '100%';
             renderer.domElement.id = 'arCanvas';
             
             document.body.appendChild(renderer.domElement);
@@ -268,9 +274,28 @@
                 if (arToolkitContext && arToolkitContext.arController !== null) {
                     arToolkitSource.copySizeTo(arToolkitContext.arController.canvas);
                 }
-                // Update renderer size to match
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(window.devicePixelRatio || 1);
+                
+                // Center the renderer output
+                if (renderer.domElement) {
+                    const canvas = renderer.domElement;
+                    const isPortrait = window.innerHeight > window.innerWidth;
+                    
+                    if (isPortrait) {
+                        // Portrait mode - fit width
+                        canvas.style.width = '100%';
+                        canvas.style.height = 'auto';
+                        canvas.style.top = '50%';
+                        canvas.style.left = '0';
+                        canvas.style.transform = 'translateY(-50%)';
+                    } else {
+                        // Landscape mode - fit height
+                        canvas.style.width = 'auto';
+                        canvas.style.height = '100%';
+                        canvas.style.top = '0';
+                        canvas.style.left = '50%';
+                        canvas.style.transform = 'translateX(-50%)';
+                    }
+                }
             }
 
             arToolkitSource.init(function onReady() {
